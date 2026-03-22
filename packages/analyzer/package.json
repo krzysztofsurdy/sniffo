@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*"
-  },
-  "devDependencies": {}
+    "@contextualizer/core": "workspace:*",
+    "tree-sitter-php": "^0.24.2",
+    "web-tree-sitter": "^0.26.7"
+  }
 }
