@@ -3,6 +3,7 @@ import { runAnalyze } from './commands/analyze.js';
 import { runUpdate } from './commands/update.js';
 import { runStatus } from './commands/status.js';
 import { installHook, uninstallHook } from './commands/install-hook.js';
+import { runInit } from './commands/init.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -62,6 +63,16 @@ export function createCli(): Command {
     .action(async (opts: { dir: string }) => {
       await uninstallHook(opts.dir);
       console.log('Pre-commit hook removed.');
+    });
+
+  program
+    .command('init')
+    .description('Initialize contextualizer in the current project')
+    .option('-d, --dir <path>', 'Project directory', process.cwd())
+    .option('--no-hooks', 'Skip pre-commit hook installation')
+    .action(async (opts: { dir: string; hooks: boolean }) => {
+      await runInit(opts.dir, { noHooks: !opts.hooks });
+      console.log('Contextualizer initialized.');
     });
 
   return program;
