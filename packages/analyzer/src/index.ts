@@ -6,3 +6,5 @@ export { detectChanges, type ChangeSet, type FileChange } from './pipeline/chang
 export { resolveReferences, type SymbolIndex, type ResolvedReference, type ResolutionResult } from './pipeline/reference-resolver.js';
 export { buildHierarchy, type HierarchyResult } from './pipeline/hierarchy-builder.js';
 export { aggregateEdges } from './pipeline/edge-aggregator.js';
+export { getStalenessReport, type StalenessReport, type StaleNodeInfo } from './pipeline/staleness-reporter.js';
+export { cascadeInvalidation, type InvalidationResult } from './pipeline/cascade-invalidator.js';
