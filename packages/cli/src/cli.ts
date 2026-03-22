@@ -75,5 +75,16 @@ export function createCli(): Command {
       console.log('Contextualizer initialized.');
     });
 
+  program
+    .command('serve')
+    .description('Start HTTP API server')
+    .option('-d, --dir <path>', 'Project directory', process.cwd())
+    .option('-p, --port <number>', 'Port number', '3100')
+    .option('--host <addr>', 'Bind address', '127.0.0.1')
+    .action(async (opts) => {
+      const { runServe } = await import('./commands/serve.js');
+      await runServe(opts.dir, { port: parseInt(opts.port), host: opts.host });
+    });
+
   return program;
 }

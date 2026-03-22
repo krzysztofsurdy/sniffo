@@ -18,6 +18,7 @@
     "@contextualizer/core": "workspace:*",
     "@contextualizer/analyzer": "workspace:*",
     "@contextualizer/storage": "workspace:*",
+    "@contextualizer/web-server": "workspace:*",
     "commander": "^13.0.0"
   }
 }
