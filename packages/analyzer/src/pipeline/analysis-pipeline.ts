@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
+import { join, extname } from 'node:path';
 import {
   GraphLevel,
   NodeType,
@@ -15,17 +17,25 @@ import {
 } from '@contextualizer/core';
 import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
 import type { ParserRegistry } from '../parsers/parser-registry.js';
-import { discoverFiles } from './file-discovery.js';
+import { discoverFiles, type DiscoveredFile } from './file-discovery.js';
 import { detectChanges, type FileChange } from './change-detector.js';
 import { resolveReferences, type SymbolIndex } from './reference-resolver.js';
 import { buildHierarchy } from './hierarchy-builder.js';
 import { aggregateEdges } from './edge-aggregator.js';
+import { cascadeInvalidation } from './cascade-invalidator.js';
 
 export interface PipelineOptions {
   rootDir: string;
   projectName: string;
   includePatterns?: string[];
   excludePatterns?: string[];
+  files?: string[];
+}
+
+interface ChangeDetectionResult {
+  filesToProcess: FileChange[];
+  filesScanned: number;
+  filesSkipped: number;
 }
 
 const REFERENCE_KIND_TO_EDGE_TYPE: Record<string, EdgeType> = {
@@ -52,6 +62,15 @@ const SYMBOL_KIND_TO_NODE_TYPE: Record<string, NodeType> = {
 
 const CODE_LEVEL_KINDS = new Set(['method', 'property', 'constant']);
 
+const EXTENSION_TO_LANGUAGE: Record<string, string> = {
+  '.php': 'php',
+  '.ts': 'typescript',
+  '.tsx': 'typescript',
+  '.js': 'javascript',
+  '.jsx': 'javascript',
+  '.py': 'python',
+};
+
 function extractParentFqn(fqn: string): string | null {
   const idx = fqn.lastIndexOf('::');
   if (idx === -1) return null;
@@ -75,33 +94,33 @@ export class AnalysisPipeline {
   ) {}
 
   async analyze(options: PipelineOptions): Promise<AnalysisResult> {
+    return this.runPipeline(options, false);
+  }
+
+  async analyzeIncremental(options: PipelineOptions): Promise<AnalysisResult> {
+    return this.runPipeline(options, true);
+  }
+
+  private async runPipeline(options: PipelineOptions, cascade: boolean): Promise<AnalysisResult> {
     const startTime = Date.now();
     const errors: AnalysisError[] = [];
     let symbolsFound = 0;
     let referencesFound = 0;
     let filesFailed = 0;
 
-    const includePatterns = options.includePatterns ?? ['**/*.php'];
+    const changeResult = options.files && options.files.length > 0
+      ? await this.discoverSpecificFiles(options)
+      : await this.discoverAndDetectChanges(options);
 
-    const discoveredFiles = await discoverFiles(
-      options.rootDir,
-      includePatterns,
-      options.excludePatterns ?? [],
-    );
+    const { filesToProcess, filesScanned, filesSkipped } = changeResult;
 
-    const changeSet = await detectChanges(
-      discoveredFiles,
-      (filePath) => this.store.getFileHash(filePath),
-      () => this.store.getAllTrackedPaths(),
-      hashFile,
-    );
-
-    for (const deletedPath of changeSet.deleted) {
-      await this.store.removeNodesByFilePath(deletedPath);
-      await this.store.removeFileHash(deletedPath);
+    if (cascade) {
+      const changedFilePaths = filesToProcess.map((f) => f.file.relativePath);
+      if (changedFilePaths.length > 0) {
+        await cascadeInvalidation(this.store, changedFilePaths);
+      }
     }
 
-    const filesToProcess: FileChange[] = [...changeSet.added, ...changeSet.modified];
     const parsedFiles: ParsedFile[] = [];
 
     for (const fileChange of filesToProcess) {
@@ -248,14 +267,79 @@ export class AnalysisPipeline {
     const filesAnalyzed = filesToProcess.length - filesFailed;
 
     return {
-      filesScanned: discoveredFiles.length,
+      filesScanned,
       filesAnalyzed,
-      filesSkipped: changeSet.unchanged.length,
+      filesSkipped,
       filesFailed,
       symbolsFound,
       referencesFound,
       durationMs: Date.now() - startTime,
       errors,
+    };
+  }
+
+  private async discoverAndDetectChanges(options: PipelineOptions): Promise<ChangeDetectionResult> {
+    const includePatterns = options.includePatterns ?? ['**/*.php'];
+
+    const discoveredFiles = await discoverFiles(
+      options.rootDir,
+      includePatterns,
+      options.excludePatterns ?? [],
+    );
+
+    const changeSet = await detectChanges(
+      discoveredFiles,
+      (filePath) => this.store.getFileHash(filePath),
+      () => this.store.getAllTrackedPaths(),
+      hashFile,
+    );
+
+    for (const deletedPath of changeSet.deleted) {
+      await this.store.removeNodesByFilePath(deletedPath);
+      await this.store.removeFileHash(deletedPath);
+    }
+
+    return {
+      filesToProcess: [...changeSet.added, ...changeSet.modified],
+      filesScanned: discoveredFiles.length,
+      filesSkipped: changeSet.unchanged.length,
+    };
+  }
+
+  private async discoverSpecificFiles(options: PipelineOptions): Promise<ChangeDetectionResult> {
+    const files = options.files!;
+    const discovered: DiscoveredFile[] = [];
+
+    for (const relativePath of files) {
+      const absolutePath = join(options.rootDir, relativePath);
+      const ext = extname(relativePath);
+      const language = EXTENSION_TO_LANGUAGE[ext];
+      if (!language) continue;
+
+      try {
+        const fileStat = await stat(absolutePath);
+        discovered.push({
+          relativePath,
+          absolutePath,
+          language,
+          sizeBytes: fileStat.size,
+        });
+      } catch {
+        // File may not exist
+      }
+    }
+
+    const changeSet = await detectChanges(
+      discovered,
+      (filePath) => this.store.getFileHash(filePath),
+      async () => [],
+      hashFile,
+    );
+
+    return {
+      filesToProcess: [...changeSet.added, ...changeSet.modified],
+      filesScanned: discovered.length,
+      filesSkipped: changeSet.unchanged.length,
     };
   }
 
