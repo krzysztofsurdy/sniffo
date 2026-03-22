@@ -1,5 +1,7 @@
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
 import { DuckDBGraphStore } from '@contextualizer/storage';
+import { fileURLToPath } from 'node:url';
 
 export async function runServe(projectDir: string, options: { port?: number; host?: string } = {}): Promise<void> {
   const { startServer } = await import('@contextualizer/web-server');
@@ -10,6 +12,21 @@ export async function runServe(projectDir: string, options: { port?: number; hos
   const port = options.port ?? 3100;
   const host = options.host ?? '127.0.0.1';
 
-  await startServer({ store, projectDir, port, host });
+  let staticDir: string | undefined;
+  try {
+    const webPkgPath = import.meta.resolve('@contextualizer/web/package.json');
+    const webPkgDir = dirname(fileURLToPath(webPkgPath));
+    const distDir = join(webPkgDir, 'dist');
+    if (existsSync(distDir)) {
+      staticDir = distDir;
+    }
+  } catch {
+    // Web package not available
+  }
+
+  await startServer({ store, projectDir, port, host, staticDir });
   console.log(`Server running at http://${host}:${port}`);
+  if (staticDir) {
+    console.log(`Web UI available at http://${host}:${port}`);
+  }
 }

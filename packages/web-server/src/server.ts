@@ -12,6 +12,7 @@ export interface ServerOptions {
   projectDir: string;
   host?: string;
   port?: number;
+  staticDir?: string;
 }
 
 export async function createServer(options: ServerOptions) {
@@ -25,6 +26,22 @@ export async function createServer(options: ServerOptions) {
   registerNodeRoutes(app, store);
   registerStatusRoutes(app, store);
   registerRefreshRoutes(app, store, projectDir);
+
+  if (options.staticDir) {
+    const fastifyStatic = await import('@fastify/static');
+    await app.register(fastifyStatic.default, {
+      root: options.staticDir,
+      prefix: '/',
+      wildcard: false,
+    });
+
+    app.setNotFoundHandler(async (request, reply) => {
+      if (request.url.startsWith('/api/')) {
+        return reply.status(404).send({ success: false, error: 'Not found' });
+      }
+      return reply.sendFile('index.html');
+    });
+  }
 
   return app;
 }
