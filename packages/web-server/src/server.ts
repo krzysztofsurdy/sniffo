@@ -6,6 +6,9 @@ import { registerSearchRoutes } from './routes/search.js';
 import { registerNodeRoutes } from './routes/node.js';
 import { registerStatusRoutes } from './routes/status.js';
 import { registerRefreshRoutes } from './routes/refresh.js';
+import { registerChildrenRoutes } from './routes/children.js';
+import { registerBlastRadiusRoutes } from './routes/blast-radius.js';
+import { registerCyclesRoutes } from './routes/cycles.js';
 
 export interface ServerOptions {
   store: GraphStore;
@@ -26,6 +29,9 @@ export async function createServer(options: ServerOptions) {
   registerNodeRoutes(app, store);
   registerStatusRoutes(app, store);
   registerRefreshRoutes(app, store, projectDir);
+  registerChildrenRoutes(app, store);
+  registerBlastRadiusRoutes(app, store);
+  registerCyclesRoutes(app, store);
 
   if (options.staticDir) {
     const fastifyStatic = await import('@fastify/static');

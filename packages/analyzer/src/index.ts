@@ -10,3 +10,6 @@ export { getStalenessReport, type StalenessReport, type StaleNodeInfo } from './
 export { cascadeInvalidation, type InvalidationResult } from './pipeline/cascade-invalidator.js';
 export { searchSymbols, findReferences, findDependencies, findDependents } from './query/graph-queries.js';
 export type { ReferenceResult, DependencyResult, DependentResult } from './query/graph-queries.js';
+export { findChildren, type ChildrenResult } from './query/children-query.js';
+export { computeBlastRadius, type BlastRadiusResult, type BlastRadiusNode } from './query/blast-radius.js';
+export { detectCycles } from './query/cycle-detector.js';
