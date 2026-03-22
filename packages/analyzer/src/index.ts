@@ -1,2 +1,1 @@
-// @contextualizer/analyzer - placeholder
-export {};
+export * from './parsers/parser-registry.js';
