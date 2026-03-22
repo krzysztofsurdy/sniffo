@@ -9,11 +9,14 @@ import {
 } from '@react-sigma/core';
 import '@react-sigma/core/lib/style.css';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import { useGraphData, useChildren } from '../api/hooks';
+import { useGraphData, useChildren, useBlastRadius } from '../api/hooks';
 import { useUIStore, useNavigationStore } from '../store';
 import { buildGraphology } from '../lib/graph-builder';
 import type { GraphData } from '../api/types';
 import LevelNavigator from './LevelNavigator';
+import BlastRadiusControls from './BlastRadiusControls';
+import GraphControls from './GraphControls';
+import ExportMenu from './ExportMenu';
 
 interface GraphInnerProps {
   data: GraphData;
@@ -45,9 +48,50 @@ function GraphEvents() {
 function GraphHighlighter() {
   const sigma = useSigma();
   const selectedNodeId = useUIStore((s) => s.selectedNodeId);
+  const blastRadiusActive = useNavigationStore((s) => s.blastRadiusActive);
+  const blastRadiusDepth = useNavigationStore((s) => s.blastRadiusDepth);
   const setSettings = useSetSettings();
 
+  const { data: blastData } = useBlastRadius(
+    blastRadiusActive ? selectedNodeId : null,
+    blastRadiusDepth,
+  );
+
   useEffect(() => {
+    if (blastRadiusActive && selectedNodeId && blastData) {
+      const affectedIds = new Set(blastData.affectedNodes.map((n) => n.id));
+      affectedIds.add(selectedNodeId);
+
+      const affectedEdgeSet = new Set(
+        blastData.affectedEdges.map((e) => `${e.source}->${e.target}`),
+      );
+
+      setSettings({
+        nodeReducer: (node, attrs) => {
+          if (node === selectedNodeId) {
+            return { ...attrs, size: (attrs.size ?? 5) * 1.5 };
+          }
+          if (affectedIds.has(node)) {
+            return attrs;
+          }
+          return { ...attrs, color: (attrs.color ?? '#64748B') + '26', label: '' };
+        },
+        edgeReducer: (edge, attrs) => {
+          const graph = sigma.getGraph();
+          const src = graph.source(edge);
+          const tgt = graph.target(edge);
+          if (affectedIds.has(src) && affectedIds.has(tgt)) {
+            const key = `${src}->${tgt}`;
+            if (affectedEdgeSet.has(key)) {
+              return { ...attrs, color: '#F78166' };
+            }
+          }
+          return { ...attrs, hidden: true };
+        },
+      });
+      return;
+    }
+
     if (!selectedNodeId) {
       setSettings({
         nodeReducer: null,
@@ -73,7 +117,7 @@ function GraphHighlighter() {
         return attrs;
       },
     });
-  }, [selectedNodeId, setSettings, sigma]);
+  }, [selectedNodeId, blastRadiusActive, blastData, setSettings, sigma]);
 
   return null;
 }
@@ -179,6 +223,7 @@ export default function GraphCanvas() {
   return (
     <div className="flex-1 relative" style={{ minHeight: '400px' }}>
       <LevelNavigator />
+      <BlastRadiusControls />
       <SigmaContainer
         style={{ width: '100%', height: '100%' }}
         settings={{
@@ -199,6 +244,8 @@ export default function GraphCanvas() {
         <GraphEvents />
         <GraphHighlighter />
         <SearchFocuser />
+        <GraphControls />
+        <ExportMenu />
       </SigmaContainer>
     </div>
   );

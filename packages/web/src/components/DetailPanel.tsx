@@ -29,7 +29,29 @@ export default function DetailPanel() {
   if (!data) return null;
 
   const { node, incoming, outgoing } = data;
-  const freshnessColor = node.isStale ? '#F85149' : '#2EA043';
+
+  const daysSince = node.lastAnalyzedAt
+    ? Math.floor((Date.now() - new Date(node.lastAnalyzedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  let freshnessLabel: string;
+  let freshnessColor: string;
+  if (node.isStale || (daysSince !== null && daysSince >= 30)) {
+    freshnessLabel = daysSince !== null ? `Stale (${daysSince}d)` : 'Stale';
+    freshnessColor = '#F85149';
+  } else if (daysSince !== null && daysSince >= 7) {
+    freshnessLabel = `Aging (${daysSince}d)`;
+    freshnessColor = '#D29922';
+  } else if (daysSince !== null && daysSince < 1) {
+    freshnessLabel = 'Fresh (today)';
+    freshnessColor = '#2EA043';
+  } else if (daysSince !== null) {
+    freshnessLabel = `Fresh (${daysSince}d)`;
+    freshnessColor = '#2EA043';
+  } else {
+    freshnessLabel = 'Unknown';
+    freshnessColor = '#6E7681';
+  }
 
   return (
     <aside className="w-[360px] bg-surface-800 border-l border-border-default p-4 overflow-y-auto">
@@ -50,7 +72,7 @@ export default function DetailPanel() {
       <div className="flex gap-2 mb-4">
         <span className="px-2 py-0.5 text-xs rounded bg-surface-700 text-text-secondary">{node.type}</span>
         <span className="px-2 py-0.5 text-xs rounded bg-surface-700 text-text-secondary">{node.level}</span>
-        <span className="w-2 h-2 rounded-full mt-1" style={{ backgroundColor: freshnessColor }} title={node.isStale ? 'Stale' : 'Fresh'} />
+        <span className="px-2 py-0.5 text-xs rounded" style={{ backgroundColor: freshnessColor + '20', color: freshnessColor }}>{freshnessLabel}</span>
       </div>
 
       <div className="mb-4">
