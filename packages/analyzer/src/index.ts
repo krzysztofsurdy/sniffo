@@ -8,3 +8,5 @@ export { buildHierarchy, type HierarchyResult } from './pipeline/hierarchy-build
 export { aggregateEdges } from './pipeline/edge-aggregator.js';
 export { getStalenessReport, type StalenessReport, type StaleNodeInfo } from './pipeline/staleness-reporter.js';
 export { cascadeInvalidation, type InvalidationResult } from './pipeline/cascade-invalidator.js';
+export { searchSymbols, findReferences, findDependencies, findDependents } from './query/graph-queries.js';
+export type { ReferenceResult, DependencyResult, DependentResult } from './query/graph-queries.js';
