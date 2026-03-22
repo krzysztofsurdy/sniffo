@@ -1,0 +1,21 @@
+{
+  "name": "@contextualizer/web-server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@contextualizer/core": "workspace:*",
+    "@contextualizer/analyzer": "workspace:*",
+    "@contextualizer/storage": "workspace:*",
+    "fastify": "^5.2.0",
+    "@fastify/cors": "^11.0.0"
+  }
+}
