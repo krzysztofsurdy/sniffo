@@ -1,0 +1,23 @@
+{
+  "name": "@contextualizer/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "lpc": "dist/index.js"
+  },
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@contextualizer/core": "workspace:*",
+    "@contextualizer/analyzer": "workspace:*",
+    "@contextualizer/storage": "workspace:*",
+    "commander": "^13.0.0"
+  }
+}
