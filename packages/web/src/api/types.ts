@@ -52,6 +52,34 @@ export interface AnalysisResult {
   errors: Array<{ phase: string; filePath: string; message: string }>;
 }
 
+export interface ChildrenData {
+  parentId: string;
+  parentLabel: string;
+  children: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface BlastRadiusNode {
+  id: string;
+  qualifiedName: string;
+  shortName: string;
+  type: string;
+  filePath: string | null;
+  depth: number;
+}
+
+export interface BlastRadiusData {
+  originId: string;
+  maxDepth: number;
+  affectedNodes: BlastRadiusNode[];
+  affectedEdges: GraphEdge[];
+}
+
+export interface CyclesData {
+  cycles: string[][];
+  count: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

@@ -9,10 +9,11 @@ import {
 } from '@react-sigma/core';
 import '@react-sigma/core/lib/style.css';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import { useGraphData } from '../api/hooks';
-import { useUIStore } from '../store';
+import { useGraphData, useChildren } from '../api/hooks';
+import { useUIStore, useNavigationStore } from '../store';
 import { buildGraphology } from '../lib/graph-builder';
 import type { GraphData } from '../api/types';
+import LevelNavigator from './LevelNavigator';
 
 interface GraphInnerProps {
   data: GraphData;
@@ -22,14 +23,21 @@ interface GraphInnerProps {
 
 function GraphEvents() {
   const selectNode = useUIStore((s) => s.selectNode);
+  const drillDown = useNavigationStore((s) => s.drillDown);
+  const sigma = useSigma();
   const registerEvents = useRegisterEvents();
 
   useEffect(() => {
     registerEvents({
       clickNode: ({ node }) => selectNode(node),
       clickStage: () => selectNode(null),
+      doubleClickNode: ({ node }) => {
+        const graph = sigma.getGraph();
+        const label = graph.getNodeAttribute(node, 'label') ?? node;
+        drillDown(node, label, 'children');
+      },
     });
-  }, [registerEvents, selectNode]);
+  }, [registerEvents, selectNode, drillDown, sigma]);
 
   return null;
 }
@@ -142,10 +150,17 @@ export default function GraphCanvas() {
   const currentLevel = useUIStore((s) => s.currentLevel);
   const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
   const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
+  const drillParentId = useNavigationStore((s) => s.drillParentId);
 
-  const { data, isLoading } = useGraphData(currentLevel);
+  const { data: levelData, isLoading: levelLoading } = useGraphData(currentLevel);
+  const { data: childrenData, isLoading: childrenLoading } = useChildren(drillParentId);
 
-  if (isLoading || !data) {
+  const isLoading = drillParentId ? childrenLoading : levelLoading;
+  const graphData = drillParentId && childrenData
+    ? { nodes: childrenData.children, edges: childrenData.edges }
+    : levelData;
+
+  if (isLoading || !graphData) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary">
         Loading graph...
@@ -153,7 +168,7 @@ export default function GraphCanvas() {
     );
   }
 
-  if (data.nodes.length === 0) {
+  if (graphData.nodes.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary">
         No nodes to display. Run analysis first.
@@ -163,6 +178,7 @@ export default function GraphCanvas() {
 
   return (
     <div className="flex-1 relative" style={{ minHeight: '400px' }}>
+      <LevelNavigator />
       <SigmaContainer
         style={{ width: '100%', height: '100%' }}
         settings={{
@@ -176,7 +192,7 @@ export default function GraphCanvas() {
         }}
       >
         <GraphLoader
-          data={data}
+          data={graphData}
           visibleNodeTypes={visibleNodeTypes}
           visibleEdgeTypes={visibleEdgeTypes}
         />

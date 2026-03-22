@@ -1,4 +1,4 @@
-import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult } from './types';
+import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData } from './types';
 
 const BASE_URL = '/api';
 
@@ -25,4 +25,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ files }),
     }),
+  getChildren: (nodeId: string) => fetchJson<ChildrenData>(`/node/${encodeURIComponent(nodeId)}/children`),
+  getBlastRadius: (nodeId: string, depth: number) => fetchJson<BlastRadiusData>(`/blast-radius/${encodeURIComponent(nodeId)}?depth=${depth}`),
+  getCycles: () => fetchJson<CyclesData>('/cycles'),
 };

@@ -32,6 +32,29 @@ export function useStatus() {
   });
 }
 
+export function useChildren(nodeId: string | null) {
+  return useQuery({
+    queryKey: ['children', nodeId],
+    queryFn: () => api.getChildren(nodeId!),
+    enabled: !!nodeId,
+  });
+}
+
+export function useBlastRadius(nodeId: string | null, depth: number) {
+  return useQuery({
+    queryKey: ['blastRadius', nodeId, depth],
+    queryFn: () => api.getBlastRadius(nodeId!, depth),
+    enabled: !!nodeId,
+  });
+}
+
+export function useCycles() {
+  return useQuery({
+    queryKey: ['cycles'],
+    queryFn: () => api.getCycles(),
+  });
+}
+
 export function useRefresh() {
   const queryClient = useQueryClient();
   return useMutation({
