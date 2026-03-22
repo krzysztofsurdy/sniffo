@@ -1,1 +1,8 @@
-export * from './parsers/parser-registry.js';
+export { ParserRegistry } from './parsers/parser-registry.js';
+export { PhpParser } from './parsers/php/php-parser.js';
+export { AnalysisPipeline, type PipelineOptions } from './pipeline/analysis-pipeline.js';
+export { discoverFiles, type DiscoveredFile } from './pipeline/file-discovery.js';
+export { detectChanges, type ChangeSet, type FileChange } from './pipeline/change-detector.js';
+export { resolveReferences, type SymbolIndex, type ResolvedReference, type ResolutionResult } from './pipeline/reference-resolver.js';
+export { buildHierarchy, type HierarchyResult } from './pipeline/hierarchy-builder.js';
+export { aggregateEdges } from './pipeline/edge-aggregator.js';

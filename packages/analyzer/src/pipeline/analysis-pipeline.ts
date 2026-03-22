@@ -1,0 +1,296 @@
+import { readFile } from 'node:fs/promises';
+import {
+  GraphLevel,
+  NodeType,
+  EdgeType,
+  createNodeId,
+  createEdgeId,
+  hashFile,
+  type AnalysisResult,
+  type AnalysisError,
+  type ParsedFile,
+  type ParsedSymbol,
+  type SymbolKind,
+  type ReferenceKind,
+} from '@contextualizer/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
+import type { ParserRegistry } from '../parsers/parser-registry.js';
+import { discoverFiles } from './file-discovery.js';
+import { detectChanges, type FileChange } from './change-detector.js';
+import { resolveReferences, type SymbolIndex } from './reference-resolver.js';
+import { buildHierarchy } from './hierarchy-builder.js';
+import { aggregateEdges } from './edge-aggregator.js';
+
+export interface PipelineOptions {
+  rootDir: string;
+  projectName: string;
+  includePatterns?: string[];
+  excludePatterns?: string[];
+}
+
+const REFERENCE_KIND_TO_EDGE_TYPE: Record<string, EdgeType> = {
+  extends: EdgeType.EXTENDS,
+  implements: EdgeType.IMPLEMENTS,
+  uses_trait: EdgeType.USES_TRAIT,
+  calls: EdgeType.CALLS,
+  instantiates: EdgeType.INSTANTIATES,
+  imports: EdgeType.IMPORTS,
+  injects: EdgeType.INJECTS,
+  type_reference: EdgeType.DEPENDS_ON,
+};
+
+const SYMBOL_KIND_TO_NODE_TYPE: Record<string, NodeType> = {
+  class: NodeType.CLASS,
+  interface: NodeType.INTERFACE,
+  trait: NodeType.TRAIT,
+  enum: NodeType.ENUM,
+  function: NodeType.FUNCTION,
+  method: NodeType.METHOD,
+  property: NodeType.PROPERTY,
+  constant: NodeType.CONSTANT,
+};
+
+const CODE_LEVEL_KINDS = new Set(['method', 'property', 'constant']);
+
+function extractParentFqn(fqn: string): string | null {
+  const idx = fqn.lastIndexOf('::');
+  if (idx === -1) return null;
+  return fqn.slice(0, idx);
+}
+
+function extractNamespaceFromSymbols(parsed: ParsedFile): string | null {
+  for (const sym of parsed.symbols) {
+    if (!CODE_LEVEL_KINDS.has(sym.kind) && sym.fqn.includes('\\')) {
+      const parts = sym.fqn.split('\\');
+      return parts.slice(0, -1).join('\\');
+    }
+  }
+  return null;
+}
+
+export class AnalysisPipeline {
+  constructor(
+    private readonly store: GraphStore,
+    private readonly parserRegistry: ParserRegistry,
+  ) {}
+
+  async analyze(options: PipelineOptions): Promise<AnalysisResult> {
+    const startTime = Date.now();
+    const errors: AnalysisError[] = [];
+    let symbolsFound = 0;
+    let referencesFound = 0;
+    let filesFailed = 0;
+
+    const includePatterns = options.includePatterns ?? ['**/*.php'];
+
+    const discoveredFiles = await discoverFiles(
+      options.rootDir,
+      includePatterns,
+      options.excludePatterns ?? [],
+    );
+
+    const changeSet = await detectChanges(
+      discoveredFiles,
+      (filePath) => this.store.getFileHash(filePath),
+      () => this.store.getAllTrackedPaths(),
+      hashFile,
+    );
+
+    for (const deletedPath of changeSet.deleted) {
+      await this.store.removeNodesByFilePath(deletedPath);
+      await this.store.removeFileHash(deletedPath);
+    }
+
+    const filesToProcess: FileChange[] = [...changeSet.added, ...changeSet.modified];
+    const parsedFiles: ParsedFile[] = [];
+
+    for (const fileChange of filesToProcess) {
+      const parser = this.parserRegistry.getParserForFile(fileChange.file.absolutePath);
+      if (!parser) {
+        continue;
+      }
+
+      try {
+        const source = await readFile(fileChange.file.absolutePath, 'utf-8');
+        const parsed = await parser.parse(fileChange.file.relativePath, source);
+        parsedFiles.push(parsed);
+
+        await this.store.removeNodesByFilePath(fileChange.file.relativePath);
+
+        const now = new Date().toISOString();
+        for (const sym of parsed.symbols) {
+          const nodeType = SYMBOL_KIND_TO_NODE_TYPE[sym.kind];
+          if (!nodeType) continue;
+
+          const level = CODE_LEVEL_KINDS.has(sym.kind)
+            ? GraphLevel.CODE
+            : GraphLevel.COMPONENT;
+
+          const nodeId = createNodeId(nodeType, sym.fqn);
+
+          const node: StoredNode = {
+            id: nodeId,
+            type: nodeType,
+            level,
+            qualifiedName: sym.fqn,
+            shortName: sym.name,
+            filePath: fileChange.file.relativePath,
+            startLine: sym.startLine,
+            endLine: sym.endLine,
+            contentHash: parsed.contentHash,
+            isStale: false,
+            lastAnalyzedAt: now,
+            metadata: sym.metadata,
+          };
+
+          await this.store.upsertNode(node);
+          symbolsFound++;
+
+          if (CODE_LEVEL_KINDS.has(sym.kind)) {
+            const parentFqn = extractParentFqn(sym.fqn);
+            if (parentFqn) {
+              const parentNodeType = this.guessParentNodeType(parsed, parentFqn);
+              const parentNodeId = createNodeId(parentNodeType, parentFqn);
+              const containsEdge: StoredEdge = {
+                id: createEdgeId(parentNodeId, nodeId, EdgeType.CONTAINS),
+                source: parentNodeId,
+                target: nodeId,
+                type: EdgeType.CONTAINS,
+                level: GraphLevel.COMPONENT,
+                weight: 1.0,
+                metadata: {},
+              };
+              await this.store.upsertEdge(containsEdge);
+            }
+          }
+        }
+
+        await this.store.setFileHash(
+          fileChange.file.relativePath,
+          fileChange.newHash,
+          fileChange.file.sizeBytes,
+        );
+      } catch (err) {
+        filesFailed++;
+        errors.push({
+          phase: 'parse',
+          filePath: fileChange.file.relativePath,
+          message: err instanceof Error ? err.message : String(err),
+          recoverable: true,
+        });
+      }
+    }
+
+    const allNodes = await this.store.getAllNodes();
+    const symbolIndex = this.buildSymbolIndex(allNodes);
+
+    for (const parsed of parsedFiles) {
+      const currentNamespace = extractNamespaceFromSymbols(parsed);
+
+      const result = resolveReferences(
+        parsed.references,
+        parsed.imports,
+        currentNamespace,
+        symbolIndex,
+      );
+
+      for (const resolved of result.resolved) {
+        const sourceNodeType = this.guessNodeTypeFromFqn(parsed, resolved.original.sourceSymbolFqn);
+        const sourceNodeId = createNodeId(sourceNodeType, resolved.original.sourceSymbolFqn);
+        const edgeType = REFERENCE_KIND_TO_EDGE_TYPE[resolved.original.kind] ?? EdgeType.DEPENDS_ON;
+
+        const edge: StoredEdge = {
+          id: createEdgeId(sourceNodeId, resolved.targetNodeId, edgeType),
+          source: sourceNodeId,
+          target: resolved.targetNodeId,
+          type: edgeType,
+          level: GraphLevel.CODE,
+          weight: 1.0,
+          metadata: {
+            sourceLocation: {
+              file: resolved.original.filePath,
+              line: resolved.original.line,
+            },
+            confidence: resolved.confidence,
+          },
+        };
+
+        await this.store.upsertEdge(edge);
+        referencesFound++;
+      }
+    }
+
+    const componentNodes = allNodes.filter((n) => n.level === GraphLevel.COMPONENT);
+    const hierarchy = buildHierarchy(componentNodes, options.projectName);
+
+    await this.store.upsertNode(hierarchy.systemNode);
+    for (const containerNode of hierarchy.containerNodes) {
+      await this.store.upsertNode(containerNode);
+    }
+    for (const edge of hierarchy.containmentEdges) {
+      await this.store.upsertEdge(edge);
+    }
+
+    const allEdges = await this.store.getAllEdges();
+    const codeEdges = allEdges.filter((e) => e.level === GraphLevel.CODE && e.type !== EdgeType.CONTAINS);
+
+    const containmentMap = new Map<string, string>();
+    const containsEdges = allEdges.filter((e) => e.type === EdgeType.CONTAINS);
+    for (const e of containsEdges) {
+      containmentMap.set(e.target, e.source);
+    }
+
+    const aggregated = aggregateEdges(codeEdges, containmentMap);
+    for (const edge of aggregated) {
+      await this.store.upsertEdge(edge);
+    }
+
+    const filesAnalyzed = filesToProcess.length - filesFailed;
+
+    return {
+      filesScanned: discoveredFiles.length,
+      filesAnalyzed,
+      filesSkipped: changeSet.unchanged.length,
+      filesFailed,
+      symbolsFound,
+      referencesFound,
+      durationMs: Date.now() - startTime,
+      errors,
+    };
+  }
+
+  private buildSymbolIndex(nodes: StoredNode[]): SymbolIndex {
+    const byFqn = new Map<string, string>();
+    const byShortName = new Map<string, Array<{ fqn: string; nodeId: string }>>();
+
+    for (const node of nodes) {
+      if (node.level !== GraphLevel.COMPONENT) continue;
+
+      byFqn.set(node.qualifiedName, node.id);
+
+      const existing = byShortName.get(node.shortName) ?? [];
+      existing.push({ fqn: node.qualifiedName, nodeId: node.id });
+      byShortName.set(node.shortName, existing);
+    }
+
+    return { byFqn, byShortName };
+  }
+
+  private guessParentNodeType(parsed: ParsedFile, parentFqn: string): NodeType {
+    for (const sym of parsed.symbols) {
+      if (sym.fqn === parentFqn) {
+        return SYMBOL_KIND_TO_NODE_TYPE[sym.kind] ?? NodeType.CLASS;
+      }
+    }
+    return NodeType.CLASS;
+  }
+
+  private guessNodeTypeFromFqn(parsed: ParsedFile, fqn: string): NodeType {
+    for (const sym of parsed.symbols) {
+      if (sym.fqn === fqn) {
+        return SYMBOL_KIND_TO_NODE_TYPE[sym.kind] ?? NodeType.CLASS;
+      }
+    }
+    return NodeType.CLASS;
+  }
+}
