@@ -1,0 +1,22 @@
+{
+  "name": "llm-project-contextualizer",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "eslint": "^10.1.0",
+    "turbo": "^2.8.20",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

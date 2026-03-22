@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.turbo/
+.contextualizer/
+*.wasm
+!grammars/.gitkeep
+.env
+.DS_Store
+coverage/
+tsconfig.tsbuildinfo
