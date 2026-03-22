@@ -1,5 +1,6 @@
 export { ParserRegistry } from './parsers/parser-registry.js';
 export { PhpParser } from './parsers/php/php-parser.js';
+export { TypeScriptParser } from './parsers/typescript/typescript-parser.js';
 export { AnalysisPipeline, type PipelineOptions } from './pipeline/analysis-pipeline.js';
 export { discoverFiles, type DiscoveredFile } from './pipeline/file-discovery.js';
 export { detectChanges, type ChangeSet, type FileChange } from './pipeline/change-detector.js';

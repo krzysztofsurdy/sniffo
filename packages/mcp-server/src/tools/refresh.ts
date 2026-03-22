@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GraphStore } from '@contextualizer/storage';
-import { AnalysisPipeline, ParserRegistry, PhpParser } from '@contextualizer/analyzer';
+import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@contextualizer/analyzer';
 
 export function registerRefreshTool(server: McpServer, store: GraphStore, projectDir: string): void {
   server.tool(
@@ -13,6 +13,7 @@ export function registerRefreshTool(server: McpServer, store: GraphStore, projec
     async ({ files }) => {
       const registry = new ParserRegistry();
       registry.register(new PhpParser());
+      registry.register(new TypeScriptParser());
       const pipeline = new AnalysisPipeline(store, registry);
 
       const result = await pipeline.analyzeIncremental({

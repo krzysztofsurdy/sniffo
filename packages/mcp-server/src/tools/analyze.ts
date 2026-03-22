@@ -1,24 +1,25 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GraphStore } from '@contextualizer/storage';
-import { AnalysisPipeline, ParserRegistry, PhpParser } from '@contextualizer/analyzer';
+import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@contextualizer/analyzer';
 
 export function registerAnalyzeTool(server: McpServer, store: GraphStore, projectDir: string): void {
   server.tool(
     'analyze_project',
     'Run full analysis on the codebase to build the knowledge graph',
     {
-      includePatterns: z.array(z.string()).optional().describe('Glob patterns to include (default: ["**/*.php"])'),
+      includePatterns: z.array(z.string()).optional().describe('Glob patterns to include (default: ["**/*.php", "**/*.ts", "**/*.tsx"])'),
     },
     async ({ includePatterns }) => {
       const registry = new ParserRegistry();
       registry.register(new PhpParser());
+      registry.register(new TypeScriptParser());
       const pipeline = new AnalysisPipeline(store, registry);
 
       const result = await pipeline.analyze({
         rootDir: projectDir,
         projectName: 'project',
-        includePatterns: includePatterns ?? ['**/*.php'],
+        includePatterns: includePatterns ?? ['**/*.php', '**/*.ts', '**/*.tsx'],
       });
 
       return {
