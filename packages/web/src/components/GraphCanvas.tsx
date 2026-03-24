@@ -45,25 +45,27 @@ function GraphEvents() {
   return null;
 }
 
-function NodeDrag() {
+function NodeDrag({ layoutRef }: { layoutRef: React.RefObject<FA2Layout | null> }) {
   const sigma = useSigma();
   const draggedNodeRef = useRef<string | null>(null);
-  const isDraggingRef = useRef(false);
 
   const handleDown = useCallback(
     (e: { node: string }) => {
       draggedNodeRef.current = e.node;
-      isDraggingRef.current = false;
-      sigma.getGraph().setNodeAttribute(e.node, 'highlighted', true);
+      const graph = sigma.getGraph();
+      graph.setNodeAttribute(e.node, 'highlighted', true);
+      graph.setNodeAttribute(e.node, 'fixed', true);
+      if (layoutRef.current && !layoutRef.current.isRunning()) {
+        layoutRef.current.start();
+      }
       sigma.getCamera().disable();
     },
-    [sigma],
+    [sigma, layoutRef],
   );
 
   const handleMove = useCallback(
     (coords: { x: number; y: number }) => {
       if (!draggedNodeRef.current) return;
-      isDraggingRef.current = true;
       const pos = sigma.viewportToGraph(coords);
       sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'x', pos.x);
       sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'y', pos.y);
@@ -73,10 +75,11 @@ function NodeDrag() {
 
   const handleUp = useCallback(() => {
     if (draggedNodeRef.current) {
-      sigma.getGraph().removeNodeAttribute(draggedNodeRef.current, 'highlighted');
+      const graph = sigma.getGraph();
+      graph.removeNodeAttribute(draggedNodeRef.current, 'highlighted');
+      graph.removeNodeAttribute(draggedNodeRef.current, 'fixed');
       draggedNodeRef.current = null;
     }
-    isDraggingRef.current = false;
     sigma.getCamera().enable();
   }, [sigma]);
 
@@ -190,10 +193,9 @@ function SearchFocuser() {
   return null;
 }
 
-function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes }: GraphInnerProps) {
+function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, layoutRef }: GraphInnerProps & { layoutRef: React.MutableRefObject<FA2Layout | null> }) {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
-  const layoutRef = useRef<FA2Layout | null>(null);
 
   const graph = useMemo(
     () => buildGraphology(data, visibleNodeTypes, visibleEdgeTypes),
@@ -212,30 +214,24 @@ function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes }: GraphInnerPro
 
     const sigmaGraph = sigma.getGraph();
     const layout = new FA2Layout(sigmaGraph, {
+      getEdgeWeight: 'size',
       settings: {
         gravity: 1,
         scalingRatio: 2,
-        slowDown: 5,
+        slowDown: 10,
         barnesHutOptimize: sigmaGraph.order > 100,
       },
     });
     layout.start();
     layoutRef.current = layout;
 
-    const timer = setTimeout(() => {
-      if (layoutRef.current?.isRunning()) {
-        layoutRef.current.stop();
-      }
-    }, 5000);
-
     return () => {
-      clearTimeout(timer);
       if (layoutRef.current) {
         layoutRef.current.kill();
         layoutRef.current = null;
       }
     };
-  }, [graph, loadGraph, sigma]);
+  }, [graph, loadGraph, sigma, layoutRef]);
 
   return null;
 }
@@ -245,6 +241,7 @@ export default function GraphCanvas() {
   const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
   const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
   const drillParentId = useNavigationStore((s) => s.drillParentId);
+  const layoutRef = useRef<FA2Layout | null>(null);
 
   const { data: levelData, isLoading: levelLoading } = useGraphData(currentLevel);
   const { data: childrenData, isLoading: childrenLoading } = useChildren(drillParentId);
@@ -291,9 +288,10 @@ export default function GraphCanvas() {
           data={graphData}
           visibleNodeTypes={visibleNodeTypes}
           visibleEdgeTypes={visibleEdgeTypes}
+          layoutRef={layoutRef}
         />
         <GraphEvents />
-        <NodeDrag />
+        <NodeDrag layoutRef={layoutRef} />
         <GraphHighlighter />
         <SearchFocuser />
         <GraphControls />
