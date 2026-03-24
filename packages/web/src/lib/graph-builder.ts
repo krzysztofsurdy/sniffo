@@ -145,7 +145,7 @@ export function buildGraphology(
 
     if (layoutType === 'sunshine') {
       groupCenters.set(centerKey, { cx: 0, cy: 0 });
-      const baseRingGap = 30 * spacingCenter;
+      const baseRingGap = 200 * spacingCenter;
       let ring = 0;
       let qi = 1;
       let ringStart = 1;
@@ -182,7 +182,8 @@ export function buildGraphology(
         }
         ring = d;
       }
-      disconnectedPos = { cx: 0, cy: cumulativeRadius + baseRingGap };
+      const maxOuterGroupRadius = Math.max(0, ...Array.from(groupRadii.values()));
+      disconnectedPos = { cx: 0, cy: cumulativeRadius + maxOuterGroupRadius * 2 + baseRingGap * 3 };
 
     } else if (layoutType === 'tree') {
       // Natural tree: root at bottom, branches grow upward fanning out

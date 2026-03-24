@@ -1,15 +1,9 @@
 import { useViews, useDeleteView } from '../api/hooks';
 import { useUIStore, useNavigationStore } from '../store';
 
-const LAYOUT_TYPES = [
-  { value: 'sunshine', label: 'Sunshine' },
-];
-
 export default function ViewsPanel() {
   const currentLevel = useUIStore((s) => s.currentLevel);
   const setCurrentLevel = useUIStore((s) => s.setCurrentLevel);
-  const layoutType = useUIStore((s) => s.layoutType);
-  const setLayoutType = useUIStore((s) => s.setLayoutType);
   const clearView = useNavigationStore((s) => s.clearView);
 
   const { data: views } = useViews();
@@ -18,19 +12,6 @@ export default function ViewsPanel() {
   return (
     <div className="p-3 border-b border-border-muted">
       <p className="text-text-tertiary text-xs mb-2 uppercase tracking-wide">Views</p>
-
-      <div className="flex gap-1 mb-3">
-        <select
-          value={layoutType}
-          onChange={(e) => setLayoutType(e.target.value)}
-          className="bg-surface-700 text-text-secondary text-xs rounded px-2 py-1 border border-border-muted"
-        >
-          {LAYOUT_TYPES.map((lt) => (
-            <option key={lt.value} value={lt.value}>{lt.label}</option>
-          ))}
-        </select>
-      </div>
-
 
       <div className="flex gap-1 mb-3">
         {['system', 'container', 'component'].map((level) => (
