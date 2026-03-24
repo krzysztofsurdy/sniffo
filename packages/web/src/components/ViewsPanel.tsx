@@ -14,7 +14,7 @@ export default function ViewsPanel() {
       <p className="text-text-tertiary text-xs mb-2 uppercase tracking-wide">Views</p>
 
       <div className="flex gap-1 mb-3">
-        {['system', 'container', 'component', 'code'].map((level) => (
+        {['system', 'container', 'component'].map((level) => (
           <button
             key={level}
             onClick={() => { setCurrentLevel(level); clearView(); }}
@@ -30,8 +30,8 @@ export default function ViewsPanel() {
       </div>
 
       {views && views.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-text-tertiary text-xs mb-1">Saved</p>
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          <p className="text-text-tertiary text-xs mb-1 sticky top-0 bg-surface-800">Saved</p>
           {views.map((view) => (
             <div
               key={view.id}

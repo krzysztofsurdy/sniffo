@@ -37,6 +37,8 @@ export default function FilterPanel() {
   const toggleEdgeType = useUIStore((s) => s.toggleEdgeType);
   const setAllEdgeTypes = useUIStore((s) => s.setAllEdgeTypes);
   const clearEdgeTypes = useUIStore((s) => s.clearEdgeTypes);
+  const showEdgeLabels = useUIStore((s) => s.showEdgeLabels);
+  const toggleEdgeLabels = useUIStore((s) => s.toggleEdgeLabels);
 
   if (!filterPanelOpen) return null;
 
@@ -67,6 +69,7 @@ export default function FilterPanel() {
         <div className="flex items-center justify-between mb-2">
           <p className="text-text-tertiary text-xs uppercase tracking-wide">Edge Types</p>
           <div className="flex gap-2">
+            <button onClick={toggleEdgeLabels} className={`text-xs ${showEdgeLabels ? 'text-text-link' : 'text-text-tertiary'}`}>Labels</button>
             <button onClick={() => setAllEdgeTypes(Object.keys(EDGE_COLORS))} className="text-text-link text-xs">All</button>
             <button onClick={clearEdgeTypes} className="text-text-link text-xs">None</button>
           </div>

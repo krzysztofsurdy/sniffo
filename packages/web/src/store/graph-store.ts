@@ -31,6 +31,9 @@ export interface UIState {
   clearSelection: () => void;
   setSelection: (nodeIds: string[]) => void;
 
+  showEdgeLabels: boolean;
+  toggleEdgeLabels: () => void;
+
   filterPanelOpen: boolean;
   toggleFilterPanel: () => void;
   detailPanelOpen: boolean;
@@ -88,6 +91,9 @@ export const useUIStore = create<UIState>((set) => ({
     }),
   clearSelection: () => set({ selectedNodeIds: new Set<string>() }),
   setSelection: (nodeIds) => set({ selectedNodeIds: new Set(nodeIds) }),
+
+  showEdgeLabels: false,
+  toggleEdgeLabels: () => set((s) => ({ showEdgeLabels: !s.showEdgeLabels })),
 
   filterPanelOpen: true,
   toggleFilterPanel: () => set((s) => ({ filterPanelOpen: !s.filterPanelOpen })),

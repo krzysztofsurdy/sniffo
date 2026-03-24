@@ -94,6 +94,11 @@ export function buildGraphology(
     rowMaxHeight = Math.max(rowMaxHeight, group.side);
   }
 
+  const nameCount = new Map<string, number>();
+  for (const node of visibleNodes) {
+    nameCount.set(node.shortName, (nameCount.get(node.shortName) ?? 0) + 1);
+  }
+
   const visibleNodeIds = new Set<string>();
 
   for (const node of visibleNodes) {
@@ -120,8 +125,15 @@ export function buildGraphology(
     const center = nsPositions.get(ns) ?? { cx: 0, cy: 0 };
     const jitter = 12;
 
+    let label = node.shortName;
+    if ((nameCount.get(node.shortName) ?? 0) > 1) {
+      const sep = node.qualifiedName.includes('\\') ? '\\' : node.qualifiedName.includes('/') ? '/' : '.';
+      const parts = node.qualifiedName.split(sep);
+      label = parts.length > 1 ? parts.slice(-2).join(sep) : node.shortName;
+    }
+
     graph.addNode(node.id, {
-      label: node.shortName,
+      label,
       x: center.cx + (Math.random() - 0.5) * jitter,
       y: center.cy + (Math.random() - 0.5) * jitter,
       size: node.type === 'SYSTEM' ? 12 : node.type === 'PACKAGE' ? 10 : node.type === 'MODULE' ? 8 : 5,
@@ -140,6 +152,16 @@ export function buildGraphology(
 
     const edgeSize = (w: number) => Math.min(5, 1 + Math.log2(Math.max(1, w)));
 
+    const types = edge.metadata?.constituentEdgeTypes as string[] | undefined;
+    const count = edge.metadata?.constituentEdgeCount as number | undefined;
+    let edgeLabel: string;
+    if (types && types.length > 0) {
+      edgeLabel = types.map((t) => t.toLowerCase()).join(', ');
+      if (count && count > types.length) edgeLabel = `${count}x ${edgeLabel}`;
+    } else {
+      edgeLabel = edge.type.toLowerCase();
+    }
+
     const existingEdge = graph.findEdge(edge.source, edge.target, () => true);
     if (existingEdge) {
       const rawWeight = (graph.getEdgeAttribute(existingEdge, 'rawWeight') ?? 1) + Math.max(1, edge.weight);
@@ -148,7 +170,7 @@ export function buildGraphology(
     } else {
       const w = Math.max(1, edge.weight);
       graph.addEdge(edge.source, edge.target, {
-        label: edge.type,
+        label: edgeLabel,
         color: edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type),
         size: edgeSize(w),
         rawWeight: w,

@@ -316,6 +316,7 @@ export default function GraphCanvas() {
   const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
   const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
   const drillParentId = useNavigationStore((s) => s.drillParentId);
+  const showEdgeLabels = useUIStore((s) => s.showEdgeLabels);
   const layoutRef = useRef<FA2Layout | null>(null);
 
   const { data: levelData, isLoading: levelLoading } = useGraphData(currentLevel);
@@ -351,7 +352,11 @@ export default function GraphCanvas() {
         style={{ width: '100%', height: '100%', backgroundColor: '#0D1117' }}
         settings={{
           renderLabels: true,
+          renderEdgeLabels: showEdgeLabels,
           labelColor: { color: '#E6EDF3' },
+          edgeLabelColor: { color: '#8B949E' },
+          edgeLabelFont: 'Inter, sans-serif',
+          edgeLabelSize: 10,
           labelFont: 'Inter, sans-serif',
           labelSize: 12,
           defaultEdgeType: 'arrow',
