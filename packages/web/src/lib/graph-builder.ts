@@ -26,20 +26,45 @@ export function buildGraphology(
   const graph = new Graph();
 
   const visibleNodes = data.nodes.filter((n) => visibleNodeTypes.has(n.type));
-  const namespaces = new Map<string, number>();
+
+  const nsNodes = new Map<string, number>();
   for (const node of visibleNodes) {
     const ns = extractNamespace(node.qualifiedName);
-    if (!namespaces.has(ns)) namespaces.set(ns, namespaces.size);
+    nsNodes.set(ns, (nsNodes.get(ns) ?? 0) + 1);
   }
 
-  const nsCount = Math.max(1, namespaces.size);
-  const radius = nsCount * 8;
+  const sorted = Array.from(nsNodes.keys()).sort();
+
+  const topLevel = new Map<string, string[]>();
+  for (const ns of sorted) {
+    const sep = ns.includes('\\') ? '\\' : ns.includes('/') ? '/' : '.';
+    const parts = ns.split(sep);
+    const top = parts.slice(0, Math.min(2, parts.length)).join(sep) || ns;
+    if (!topLevel.has(top)) topLevel.set(top, []);
+    topLevel.get(top)!.push(ns);
+  }
+
+  const groupSpacing = 60;
   const nsPositions = new Map<string, { cx: number; cy: number }>();
-  let i = 0;
-  for (const ns of namespaces.keys()) {
-    const angle = (2 * Math.PI * i) / nsCount;
-    nsPositions.set(ns, { cx: radius * Math.cos(angle), cy: radius * Math.sin(angle) });
-    i++;
+  let groupIdx = 0;
+  const groupCount = Math.max(1, topLevel.size);
+  for (const [, children] of topLevel) {
+    const groupAngle = (2 * Math.PI * groupIdx) / groupCount;
+    const groupRadius = groupCount * groupSpacing / (2 * Math.PI);
+    const gcx = groupRadius * Math.cos(groupAngle);
+    const gcy = groupRadius * Math.sin(groupAngle);
+
+    const subSpacing = 20;
+    const cols = Math.ceil(Math.sqrt(children.length));
+    for (let ci = 0; ci < children.length; ci++) {
+      const row = Math.floor(ci / cols);
+      const col = ci % cols;
+      nsPositions.set(children[ci], {
+        cx: gcx + (col - cols / 2) * subSpacing,
+        cy: gcy + (row - cols / 2) * subSpacing,
+      });
+    }
+    groupIdx++;
   }
 
   const visibleNodeIds = new Set<string>();
