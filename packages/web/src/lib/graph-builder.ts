@@ -12,10 +12,93 @@ function blendColor(color1: string, color2: string, ratio: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-function extractNamespace(qualifiedName: string): string {
+interface NsTree {
+  children: Map<string, NsTree>;
+  nodeCount: number;
+}
+
+function buildNsTree(nodes: Array<{ qualifiedName: string }>): NsTree {
+  const root: NsTree = { children: new Map(), nodeCount: 0 };
+  for (const node of nodes) {
+    const sep = node.qualifiedName.includes('\\') ? '\\' : node.qualifiedName.includes('/') ? '/' : '.';
+    const parts = node.qualifiedName.split(sep);
+    const nsParts = parts.slice(0, -1);
+
+    let cur = root;
+    cur.nodeCount++;
+    for (const part of nsParts) {
+      if (!cur.children.has(part)) {
+        cur.children.set(part, { children: new Map(), nodeCount: 0 });
+      }
+      cur = cur.children.get(part)!;
+      cur.nodeCount++;
+    }
+  }
+  return root;
+}
+
+interface Circle { cx: number; cy: number; r: number }
+
+function layoutCirclePack(tree: NsTree, cx: number, cy: number, radius: number): Map<string, Circle> {
+  const result = new Map<string, Circle>();
+  packRecursive(tree, cx, cy, radius, '', result);
+  return result;
+}
+
+function packRecursive(
+  tree: NsTree,
+  cx: number,
+  cy: number,
+  radius: number,
+  prefix: string,
+  result: Map<string, Circle>,
+): void {
+  if (tree.children.size === 0) {
+    result.set(prefix, { cx, cy, r: radius });
+    return;
+  }
+
+  const entries = Array.from(tree.children.entries())
+    .sort((a, b) => b[1].nodeCount - a[1].nodeCount);
+
+  const total = entries.reduce((s, [, t]) => s + t.nodeCount, 0);
+  if (total === 0) return;
+
+  const innerRadius = radius * 0.85;
+
+  if (entries.length === 1) {
+    const [name, subtree] = entries[0];
+    const childPrefix = prefix ? `${prefix}\\${name}` : name;
+    if (subtree.children.size > 0) {
+      packRecursive(subtree, cx, cy, innerRadius, childPrefix, result);
+    } else {
+      result.set(childPrefix, { cx, cy, r: innerRadius });
+    }
+    return;
+  }
+
+  for (let i = 0; i < entries.length; i++) {
+    const [name, subtree] = entries[i];
+    const ratio = subtree.nodeCount / total;
+    const childR = innerRadius * Math.sqrt(ratio);
+    const angle = (2 * Math.PI * i) / entries.length - Math.PI / 2;
+    const dist = innerRadius - childR;
+    const childCx = cx + dist * Math.cos(angle);
+    const childCy = cy + dist * Math.sin(angle);
+    const childPrefix = prefix ? `${prefix}\\${name}` : name;
+
+    if (subtree.children.size > 0) {
+      packRecursive(subtree, childCx, childCy, childR, childPrefix, result);
+    } else {
+      result.set(childPrefix, { cx: childCx, cy: childCy, r: childR });
+    }
+  }
+}
+
+function getNodeNamespace(qualifiedName: string): string {
   const sep = qualifiedName.includes('\\') ? '\\' : qualifiedName.includes('/') ? '/' : '.';
   const parts = qualifiedName.split(sep);
-  return parts.length > 1 ? parts.slice(0, -1).join(sep) : '';
+  return parts.length > 1 ? parts.slice(0, -1).join('\\') : '';
 }
 
 export function buildGraphology(
@@ -27,71 +110,26 @@ export function buildGraphology(
 
   const visibleNodes = data.nodes.filter((n) => visibleNodeTypes.has(n.type));
 
-  const nsNodes = new Map<string, number>();
+  const tree = buildNsTree(visibleNodes);
+  const totalNodes = visibleNodes.length;
+  const totalRadius = Math.max(100, Math.sqrt(totalNodes) * 10);
+  const circles = layoutCirclePack(tree, 0, 0, totalRadius);
+
+  function findCircle(ns: string): Circle | undefined {
+    if (circles.has(ns)) return circles.get(ns);
+    const parts = ns.split('\\');
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const parent = parts.slice(0, i).join('\\');
+      if (circles.has(parent)) return circles.get(parent);
+    }
+    return undefined;
+  }
+
+  const nsCounters = new Map<string, number>();
+  const nsTotals = new Map<string, number>();
   for (const node of visibleNodes) {
-    const ns = extractNamespace(node.qualifiedName);
-    nsNodes.set(ns, (nsNodes.get(ns) ?? 0) + 1);
-  }
-
-  const sorted = Array.from(nsNodes.keys()).sort();
-
-  const topLevel = new Map<string, string[]>();
-  for (const ns of sorted) {
-    const sep = ns.includes('\\') ? '\\' : ns.includes('/') ? '/' : '.';
-    const parts = ns.split(sep);
-    const top = parts.slice(0, Math.min(2, parts.length)).join(sep) || ns;
-    if (!topLevel.has(top)) topLevel.set(top, []);
-    topLevel.get(top)!.push(ns);
-  }
-
-  const spacing = 10;
-  const gap = 40;
-
-  const groups: Array<{ namespaces: string[]; nodeCount: number; side: number }> = [];
-  for (const [, children] of topLevel) {
-    let nodeCount = 0;
-    for (const ns of children) nodeCount += nsNodes.get(ns) ?? 0;
-    const side = Math.ceil(Math.sqrt(nodeCount)) * spacing;
-    groups.push({ namespaces: children, nodeCount, side });
-  }
-
-  groups.sort((a, b) => b.nodeCount - a.nodeCount);
-
-  const totalArea = groups.reduce((s, g) => s + g.side * g.side, 0);
-  const maxRowWidth = Math.max(Math.sqrt(totalArea) * 1.5, groups[0]?.side ?? 0);
-
-  const nsPositions = new Map<string, { cx: number; cy: number }>();
-  let rowX = 0;
-  let rowY = 0;
-  let rowMaxHeight = 0;
-
-  for (const group of groups) {
-    if (rowX > 0 && rowX + group.side > maxRowWidth) {
-      rowY += rowMaxHeight + gap;
-      rowX = 0;
-      rowMaxHeight = 0;
-    }
-
-    const gcx = rowX + group.side / 2;
-    const gcy = rowY + group.side / 2;
-
-    let subIdx = 0;
-    for (const ns of group.namespaces) {
-      const count = nsNodes.get(ns) ?? 0;
-      const subCols = Math.max(1, Math.ceil(Math.sqrt(count)));
-      const blockW = subCols * spacing;
-      const subRow = Math.floor(subIdx / Math.max(1, Math.floor(group.side / blockW)));
-      const subCol = subIdx % Math.max(1, Math.floor(group.side / blockW));
-
-      nsPositions.set(ns, {
-        cx: gcx - group.side / 2 + subCol * blockW + blockW / 2,
-        cy: gcy - group.side / 2 + subRow * blockW + blockW / 2,
-      });
-      subIdx++;
-    }
-
-    rowX += group.side + gap;
-    rowMaxHeight = Math.max(rowMaxHeight, group.side);
+    const ns = getNodeNamespace(node.qualifiedName);
+    nsTotals.set(ns, (nsTotals.get(ns) ?? 0) + 1);
   }
 
   const nameCount = new Map<string, number>();
@@ -121,9 +159,21 @@ export function buildGraphology(
       : freshnessState === 'unknown' ? blendColor(baseColor, '#6E7681', 0.6)
       : baseColor;
 
-    const ns = extractNamespace(node.qualifiedName);
-    const center = nsPositions.get(ns) ?? { cx: 0, cy: 0 };
-    const jitter = 12;
+    const ns = getNodeNamespace(node.qualifiedName);
+    const circle = findCircle(ns);
+
+    let x: number, y: number;
+    if (circle) {
+      const idx = nsCounters.get(ns) ?? 0;
+      nsCounters.set(ns, idx + 1);
+      const angle = (2 * Math.PI * idx) / Math.max(1, nsTotals.get(ns) ?? 1);
+      const dist = circle.r * 0.6 * Math.sqrt((idx + 1) / Math.max(1, circle.r));
+      x = circle.cx + dist * Math.cos(angle);
+      y = circle.cy + dist * Math.sin(angle);
+    } else {
+      x = (Math.random() - 0.5) * totalRadius * 2;
+      y = (Math.random() - 0.5) * totalRadius * 2;
+    }
 
     let label = node.shortName;
     if ((nameCount.get(node.shortName) ?? 0) > 1) {
@@ -134,8 +184,8 @@ export function buildGraphology(
 
     graph.addNode(node.id, {
       label,
-      x: center.cx + (Math.random() - 0.5) * jitter,
-      y: center.cy + (Math.random() - 0.5) * jitter,
+      x,
+      y,
       size: node.type === 'SYSTEM' ? 12 : node.type === 'PACKAGE' ? 10 : node.type === 'MODULE' ? 8 : 5,
       color,
       nodeType: node.type,
