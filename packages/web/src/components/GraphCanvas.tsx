@@ -153,21 +153,27 @@ function GraphHighlighter() {
       return;
     }
 
+    const graph = sigma.getGraph();
+    const neighbors = new Set<string>();
+    graph.forEachNeighbor(selectedNodeId, (neighbor) => neighbors.add(neighbor));
+
     setSettings({
       nodeReducer: (node, attrs) => {
         if (node === selectedNodeId) {
           return { ...attrs, size: (attrs.size ?? 5) * 1.5 };
         }
-        return { ...attrs, color: (attrs.color ?? '#64748B') + '40', label: '' };
+        if (neighbors.has(node)) {
+          return attrs;
+        }
+        return { ...attrs, color: (attrs.color ?? '#64748B') + '30', label: '' };
       },
       edgeReducer: (edge, attrs) => {
-        const graph = sigma.getGraph();
         const src = graph.source(edge);
         const tgt = graph.target(edge);
-        if (src !== selectedNodeId && tgt !== selectedNodeId) {
-          return { ...attrs, hidden: true };
+        if (src === selectedNodeId || tgt === selectedNodeId) {
+          return { ...attrs, size: (attrs.size ?? 1) * 1.5 };
         }
-        return attrs;
+        return { ...attrs, color: (attrs.color ?? '#45526E') + '15' };
       },
     });
   }, [selectedNodeId, blastRadiusActive, blastData, setSettings, sigma]);
