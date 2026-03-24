@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "CLI tool for Sniffo codebase knowledge graph",
   "license": "MIT",
   "repository": {
