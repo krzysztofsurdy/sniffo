@@ -379,7 +379,7 @@ export class AnalysisPipeline {
     const byShortName = new Map<string, Array<{ fqn: string; nodeId: string }>>();
 
     for (const node of nodes) {
-      if (node.level !== GraphLevel.COMPONENT) continue;
+      if (node.level !== GraphLevel.COMPONENT && node.level !== GraphLevel.CODE) continue;
 
       byFqn.set(node.qualifiedName, node.id);
 
