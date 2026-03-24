@@ -1,26 +1,13 @@
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 export async function runSetupPlugin(projectDir: string): Promise<void> {
-  const pkgDir = dirname(fileURLToPath(import.meta.url));
-  // Go up from dist/commands/ to the monorepo root, then into plugin/
-  const pluginDir = resolve(pkgDir, '..', '..', '..', '..', 'plugin');
-
-  if (!existsSync(pluginDir)) {
-    throw new Error(`Plugin directory not found at ${pluginDir}. Is the project built?`);
-  }
-
-  const mpcServerPath = resolve(pkgDir, '..', '..', '..', 'mcp-server', 'dist', 'index.js');
-  if (!existsSync(mpcServerPath)) {
-    throw new Error(`MCP server not found at ${mpcServerPath}. Run: pnpm build`);
-  }
-
   const mcpConfig = {
     mcpServers: {
       sniffo: {
-        command: 'node',
-        args: [mpcServerPath, projectDir],
+        command: 'npx',
+        args: ['@sniffo/mcp-server'],
+        env: { PROJECT_DIR: projectDir },
       },
     },
   };
@@ -43,10 +30,8 @@ export async function runSetupPlugin(projectDir: string): Promise<void> {
   }
 
   console.log(`MCP server configured in ${mcpPath}`);
-  console.log(`Plugin directory: ${pluginDir}`);
   console.log('');
-  console.log('To use the plugin, start Claude Code with:');
-  console.log(`  claude --plugin-dir ${pluginDir}`);
-  console.log('');
-  console.log('Or add to your settings for permanent use.');
+  console.log('Sniffo MCP server will be available in Claude Code.');
+  console.log('For the full plugin experience (skills + hooks), run:');
+  console.log('  claude plugin add --from-github krzysztofsurdy/sniffo');
 }

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sniffo": {
+      "command": "npx",
+      "args": ["@sniffo/mcp-server"],
+      "env": {
+        "PROJECT_DIR": "."
+      }
+    }
+  }
+}

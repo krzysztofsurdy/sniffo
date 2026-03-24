@@ -1,10 +1,20 @@
 {
   "name": "@sniffo/web-server",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
+  "description": "HTTP API server for Sniffo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krzysztofsurdy/sniffo.git",
+    "directory": "packages/web-server"
+  },
   "type": "module",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

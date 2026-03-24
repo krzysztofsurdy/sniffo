@@ -26,10 +26,10 @@ importers:
 
   packages/analyzer:
     dependencies:
-      '@contextualizer/core':
+      '@sniffo/core':
         specifier: workspace:*
         version: link:../core
-      '@contextualizer/storage':
+      '@sniffo/storage':
         specifier: workspace:*
         version: link:../storage
       fast-glob:
@@ -47,19 +47,19 @@ importers:
 
   packages/cli:
     dependencies:
-      '@contextualizer/analyzer':
+      '@sniffo/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@contextualizer/core':
+      '@sniffo/core':
         specifier: workspace:*
         version: link:../core
-      '@contextualizer/storage':
+      '@sniffo/storage':
         specifier: workspace:*
         version: link:../storage
-      '@contextualizer/web':
+      '@sniffo/web':
         specifier: workspace:*
         version: link:../web
-      '@contextualizer/web-server':
+      '@sniffo/web-server':
         specifier: workspace:*
         version: link:../web-server
       commander:
@@ -70,25 +70,25 @@ importers:
 
   packages/mcp-server:
     dependencies:
-      '@contextualizer/analyzer':
-        specifier: workspace:*
-        version: link:../analyzer
-      '@contextualizer/core':
-        specifier: workspace:*
-        version: link:../core
-      '@contextualizer/storage':
-        specifier: workspace:*
-        version: link:../storage
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.27.1(zod@3.25.76)
+      '@sniffo/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
+      '@sniffo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@sniffo/storage':
+        specifier: workspace:*
+        version: link:../storage
       zod:
         specifier: ^3.24.0
         version: 3.25.76
 
   packages/storage:
     dependencies:
-      '@contextualizer/core':
+      '@sniffo/core':
         specifier: workspace:*
         version: link:../core
       duckdb-async:
@@ -152,21 +152,21 @@ importers:
 
   packages/web-server:
     dependencies:
-      '@contextualizer/analyzer':
-        specifier: workspace:*
-        version: link:../analyzer
-      '@contextualizer/core':
-        specifier: workspace:*
-        version: link:../core
-      '@contextualizer/storage':
-        specifier: workspace:*
-        version: link:../storage
       '@fastify/cors':
         specifier: ^11.0.0
         version: 11.2.0
       '@fastify/static':
         specifier: ^8.0.0
         version: 8.3.0
+      '@sniffo/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
+      '@sniffo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@sniffo/storage':
+        specifier: workspace:*
+        version: link:../storage
       fastify:
         specifier: ^5.2.0
         version: 5.8.2

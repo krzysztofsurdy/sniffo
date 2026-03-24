@@ -1,7 +1,13 @@
 {
   "name": "@sniffo/storage",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
+  "description": "DuckDB-based graph store for Sniffo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krzysztofsurdy/sniffo.git",
+    "directory": "packages/storage"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +16,10 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc",

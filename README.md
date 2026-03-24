@@ -19,37 +19,110 @@ Sniffo parses your source code using tree-sitter, extracts symbols (classes, fun
 - TypeScript / TSX
 - JavaScript / JSX
 
-## Quick start
+## Setup
+
+### Install the CLI
 
 ```bash
-# Install dependencies and build
-pnpm install
-pnpm build
-
-# Initialize in your project (analyzes codebase + installs hook)
-npx sniffo init
-
-# Or step by step
-npx sniffo analyze        # Full analysis
-npx sniffo update         # Incremental update (changed files only)
-npx sniffo status         # Staleness report
-npx sniffo serve          # Web UI at http://localhost:3100
-npx sniffo doctor         # Health check
+npm install -g @sniffo/cli
 ```
 
-## Claude Code plugin
-
-Sniffo ships as a Claude Code plugin, giving Claude direct access to your codebase graph.
+### Initialize in your project
 
 ```bash
-# Local development
-claude --plugin-dir ./plugin
-
-# Setup MCP server for a project
-npx sniffo setup-plugin
+sniffo init        # Analyzes codebase + installs pre-commit hook
+sniffo analyze     # Full analysis
+sniffo update      # Incremental update (changed files only)
+sniffo status      # Staleness report
+sniffo serve -o    # Web UI at http://localhost:3100
+sniffo doctor      # Health check
 ```
 
-### MCP tools available to Claude
+## MCP Server
+
+Sniffo exposes a knowledge graph MCP server that works with any AI coding agent.
+
+### Claude Code
+
+```bash
+claude mcp add -s user sniffo -- npx -y @sniffo/mcp-server
+```
+
+Or project-level:
+
+```bash
+claude mcp add -s project sniffo -- npx -y @sniffo/mcp-server
+```
+
+### Claude Code Plugin (full experience)
+
+For skills and lifecycle hooks in addition to MCP tools:
+
+```bash
+claude plugin add --from-github krzysztofsurdy/sniffo
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "sniffo": {
+      "command": "npx",
+      "args": ["-y", "@sniffo/mcp-server"]
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "sniffo": {
+      "command": "npx",
+      "args": ["-y", "@sniffo/mcp-server"]
+    }
+  }
+}
+```
+
+### OpenCode
+
+Add to `opencode.json`:
+
+```json
+{
+  "mcp": {
+    "sniffo": {
+      "type": "local",
+      "command": ["npx", "-y", "@sniffo/mcp-server"]
+    }
+  }
+}
+```
+
+### VS Code (GitHub Copilot)
+
+Add to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "sniffo": {
+      "command": "npx",
+      "args": ["-y", "@sniffo/mcp-server"]
+    }
+  }
+}
+```
+
+### MCP tools
 
 | Tool | Description |
 |------|-------------|
@@ -61,7 +134,9 @@ npx sniffo setup-plugin
 | `get_freshness` | Is the graph up-to-date? |
 | `refresh` | Incremental update |
 
-### Slash commands
+### Claude Code slash commands
+
+When installed as a plugin, these skills are available:
 
 - `/sniffo:analyze` -- Run or refresh analysis
 - `/sniffo:explore` -- Navigate the dependency graph
@@ -70,7 +145,7 @@ npx sniffo setup-plugin
 ## Web UI
 
 ```bash
-npx sniffo serve -o  # Opens browser automatically
+sniffo serve -o  # Opens browser automatically
 ```
 
 Interactive graph visualization with:
@@ -94,7 +169,6 @@ packages/
   mcp-server/    MCP server (stdio transport)
   web-server/    Fastify HTTP API
   web/           React + Vite web UI
-plugin/          Claude Code plugin (skills, hooks, MCP config)
 ```
 
 ### How it works
