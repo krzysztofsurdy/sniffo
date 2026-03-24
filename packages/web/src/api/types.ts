@@ -90,6 +90,13 @@ export interface WorkspaceData {
   packages: WorkspacePackage[];
 }
 
+export interface SavedView {
+  id: string;
+  name: string;
+  nodeIds: string[];
+  createdAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

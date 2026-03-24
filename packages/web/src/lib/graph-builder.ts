@@ -60,15 +60,20 @@ export function buildGraphology(
     if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) continue;
     if (edge.source === edge.target) continue;
 
+    const edgeSize = (w: number) => Math.min(5, 1 + Math.log2(Math.max(1, w)));
+
     const existingEdge = graph.findEdge(edge.source, edge.target, () => true);
     if (existingEdge) {
-      const currentWeight = graph.getEdgeAttribute(existingEdge, 'size') ?? 1;
-      graph.setEdgeAttribute(existingEdge, 'size', currentWeight + Math.max(1, edge.weight));
+      const rawWeight = (graph.getEdgeAttribute(existingEdge, 'rawWeight') ?? 1) + Math.max(1, edge.weight);
+      graph.setEdgeAttribute(existingEdge, 'rawWeight', rawWeight);
+      graph.setEdgeAttribute(existingEdge, 'size', edgeSize(rawWeight));
     } else {
+      const w = Math.max(1, edge.weight);
       graph.addEdge(edge.source, edge.target, {
         label: edge.type,
         color: edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type),
-        size: Math.max(1, edge.weight),
+        size: edgeSize(w),
+        rawWeight: w,
         edgeType: edge.type,
       });
     }

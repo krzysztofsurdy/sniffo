@@ -133,6 +133,9 @@ Add to `.vscode/mcp.json`:
 | `find_dependents` | What depends on this? |
 | `get_freshness` | Is the graph up-to-date? |
 | `refresh` | Incremental update |
+| `create_view` | Save a named collection of symbols (e.g., "Payment Flow") |
+| `list_views` | List all saved views |
+| `delete_view` | Delete a saved view |
 
 ### Claude Code slash commands
 
@@ -141,6 +144,7 @@ When installed as a plugin, these skills are available:
 - `/sniffo:analyze` -- Run or refresh analysis
 - `/sniffo:explore` -- Navigate the dependency graph
 - `/sniffo:freshness` -- Check graph staleness
+- `/sniffo:views` -- Create and manage saved views for business flows
 
 ## Web UI
 
@@ -149,11 +153,12 @@ sniffo serve -o  # Opens browser automatically
 ```
 
 Interactive graph visualization with:
-- Force-directed layout (WebGL via Sigma.js)
+- Force-directed layout (WebGL via Sigma.js) with physics-based node dragging
 - Search and filter by symbol type
 - Drill-down navigation with breadcrumbs
 - Blast radius highlighting
 - Freshness coloring (stale nodes in red)
+- Saved views -- shift+click to multi-select nodes, save as named flows (e.g., "Payment Flow")
 - Export to JSON/CSV
 
 ## Architecture

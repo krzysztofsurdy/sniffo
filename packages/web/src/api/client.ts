@@ -1,4 +1,4 @@
-import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData } from './types';
+import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData, SavedView } from './types';
 
 const BASE_URL = '/api';
 
@@ -29,4 +29,14 @@ export const api = {
   getBlastRadius: (nodeId: string, depth: number) => fetchJson<BlastRadiusData>(`/blast-radius/${encodeURIComponent(nodeId)}?depth=${depth}`),
   getCycles: () => fetchJson<CyclesData>('/cycles'),
   getWorkspaces: () => fetchJson<WorkspaceData | null>('/workspaces'),
+
+  getViews: () => fetchJson<SavedView[]>('/views'),
+  createView: (name: string, nodeIds: string[]) =>
+    fetchJson<SavedView>('/views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, nodeIds }),
+    }),
+  deleteView: (id: string) =>
+    fetchJson<void>(`/views/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

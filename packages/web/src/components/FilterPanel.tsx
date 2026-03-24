@@ -1,5 +1,6 @@
 import { useUIStore } from '../store';
 import { NODE_COLORS, EDGE_COLORS } from '../lib/node-colors';
+import ViewsPanel from './ViewsPanel';
 
 function TypeCheckbox({
   label,
@@ -99,6 +100,8 @@ export default function FilterPanel() {
           />
         ))}
       </div>
+
+      <ViewsPanel />
     </aside>
   );
 }

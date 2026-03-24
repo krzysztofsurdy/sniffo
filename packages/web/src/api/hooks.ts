@@ -72,3 +72,23 @@ export function useRefresh() {
     },
   });
 }
+
+export function useViews() {
+  return useQuery({ queryKey: ['views'], queryFn: () => api.getViews() });
+}
+
+export function useCreateView() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, nodeIds }: { name: string; nodeIds: string[] }) => api.createView(name, nodeIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['views'] }),
+  });
+}
+
+export function useDeleteView() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteView(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['views'] }),
+  });
+}

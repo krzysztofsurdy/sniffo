@@ -25,6 +25,11 @@ export interface UIState {
   searchFocusedNodeId: string | null;
   focusSearchResult: (id: string | null) => void;
 
+  selectedNodeIds: Set<string>;
+  toggleNodeSelection: (nodeId: string) => void;
+  clearSelection: () => void;
+  setSelection: (nodeIds: string[]) => void;
+
   filterPanelOpen: boolean;
   toggleFilterPanel: () => void;
   detailPanelOpen: boolean;
@@ -70,6 +75,17 @@ export const useUIStore = create<UIState>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   searchFocusedNodeId: null,
   focusSearchResult: (id) => set({ searchFocusedNodeId: id }),
+
+  selectedNodeIds: new Set<string>(),
+  toggleNodeSelection: (nodeId) =>
+    set((state) => {
+      const next = new Set(state.selectedNodeIds);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return { selectedNodeIds: next };
+    }),
+  clearSelection: () => set({ selectedNodeIds: new Set<string>() }),
+  setSelection: (nodeIds) => set({ selectedNodeIds: new Set(nodeIds) }),
 
   filterPanelOpen: true,
   toggleFilterPanel: () => set((s) => ({ filterPanelOpen: !s.filterPanelOpen })),
