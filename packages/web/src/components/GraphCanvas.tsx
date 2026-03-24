@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   SigmaContainer,
   useRegisterEvents,
@@ -41,6 +41,56 @@ function GraphEvents() {
       },
     });
   }, [registerEvents, selectNode, drillDown, sigma]);
+
+  return null;
+}
+
+function NodeDrag() {
+  const sigma = useSigma();
+  const draggedNodeRef = useRef<string | null>(null);
+  const isDraggingRef = useRef(false);
+
+  const handleDown = useCallback(
+    (e: { node: string }) => {
+      draggedNodeRef.current = e.node;
+      isDraggingRef.current = false;
+      sigma.getGraph().setNodeAttribute(e.node, 'highlighted', true);
+      sigma.getCamera().disable();
+    },
+    [sigma],
+  );
+
+  const handleMove = useCallback(
+    (coords: { x: number; y: number }) => {
+      if (!draggedNodeRef.current) return;
+      isDraggingRef.current = true;
+      const pos = sigma.viewportToGraph(coords);
+      sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'x', pos.x);
+      sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'y', pos.y);
+    },
+    [sigma],
+  );
+
+  const handleUp = useCallback(() => {
+    if (draggedNodeRef.current) {
+      sigma.getGraph().removeNodeAttribute(draggedNodeRef.current, 'highlighted');
+      draggedNodeRef.current = null;
+    }
+    isDraggingRef.current = false;
+    sigma.getCamera().enable();
+  }, [sigma]);
+
+  useEffect(() => {
+    sigma.on('downNode', handleDown);
+    sigma.getMouseCaptor().on('mousemovebody', handleMove);
+    sigma.getMouseCaptor().on('mouseup', handleUp);
+
+    return () => {
+      sigma.off('downNode', handleDown);
+      sigma.getMouseCaptor().off('mousemovebody', handleMove);
+      sigma.getMouseCaptor().off('mouseup', handleUp);
+    };
+  }, [sigma, handleDown, handleMove, handleUp]);
 
   return null;
 }
@@ -225,7 +275,7 @@ export default function GraphCanvas() {
       <LevelNavigator />
       <BlastRadiusControls />
       <SigmaContainer
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', backgroundColor: '#0D1117' }}
         settings={{
           renderLabels: true,
           labelColor: { color: '#E6EDF3' },
@@ -234,6 +284,7 @@ export default function GraphCanvas() {
           defaultEdgeType: 'arrow',
           defaultEdgeColor: '#45526E',
           stagePadding: 40,
+          allowInvalidContainer: true,
         }}
       >
         <GraphLoader
@@ -242,6 +293,7 @@ export default function GraphCanvas() {
           visibleEdgeTypes={visibleEdgeTypes}
         />
         <GraphEvents />
+        <NodeDrag />
         <GraphHighlighter />
         <SearchFocuser />
         <GraphControls />
