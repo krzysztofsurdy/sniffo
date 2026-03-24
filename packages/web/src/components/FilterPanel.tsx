@@ -37,31 +37,12 @@ export default function FilterPanel() {
   const toggleEdgeType = useUIStore((s) => s.toggleEdgeType);
   const setAllEdgeTypes = useUIStore((s) => s.setAllEdgeTypes);
   const clearEdgeTypes = useUIStore((s) => s.clearEdgeTypes);
-  const currentLevel = useUIStore((s) => s.currentLevel);
-  const setCurrentLevel = useUIStore((s) => s.setCurrentLevel);
 
   if (!filterPanelOpen) return null;
 
   return (
     <aside className="w-[280px] bg-surface-800 border-r border-border-default overflow-y-auto">
-      <div className="p-3 border-b border-border-muted">
-        <p className="text-text-tertiary text-xs mb-2 uppercase tracking-wide">Level</p>
-        <div className="flex gap-1">
-          {['system', 'container', 'component', 'code'].map((level) => (
-            <button
-              key={level}
-              onClick={() => setCurrentLevel(level)}
-              className={`px-2 py-1 text-xs rounded capitalize ${
-                currentLevel === level
-                  ? 'bg-text-link text-surface-900 font-medium'
-                  : 'bg-surface-700 text-text-secondary hover:bg-surface-600'
-              }`}
-            >
-              {level}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ViewsPanel />
 
       <div className="p-3 border-b border-border-muted">
         <div className="flex items-center justify-between mb-2">
@@ -100,8 +81,6 @@ export default function FilterPanel() {
           />
         ))}
       </div>
-
-      <ViewsPanel />
     </aside>
   );
 }
