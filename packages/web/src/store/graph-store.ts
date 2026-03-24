@@ -34,6 +34,14 @@ export interface UIState {
   showEdgeLabels: boolean;
   toggleEdgeLabels: () => void;
 
+  hiddenNamespaces: Set<string>;
+  toggleNamespace: (ns: string) => void;
+  setNamespaces: (paths: string[], hide: boolean) => void;
+  clearHiddenNamespaces: () => void;
+
+  layoutType: string;
+  setLayoutType: (type: string) => void;
+
   filterPanelOpen: boolean;
   toggleFilterPanel: () => void;
   detailPanelOpen: boolean;
@@ -94,6 +102,28 @@ export const useUIStore = create<UIState>((set) => ({
 
   showEdgeLabels: false,
   toggleEdgeLabels: () => set((s) => ({ showEdgeLabels: !s.showEdgeLabels })),
+
+  layoutType: 'sunshine',
+  setLayoutType: (type) => set({ layoutType: type }),
+
+  hiddenNamespaces: new Set<string>(),
+  toggleNamespace: (ns) =>
+    set((state) => {
+      const next = new Set(state.hiddenNamespaces);
+      if (next.has(ns)) next.delete(ns);
+      else next.add(ns);
+      return { hiddenNamespaces: next };
+    }),
+  setNamespaces: (paths, hide) =>
+    set((state) => {
+      const next = new Set(state.hiddenNamespaces);
+      for (const p of paths) {
+        if (hide) next.add(p);
+        else next.delete(p);
+      }
+      return { hiddenNamespaces: next };
+    }),
+  clearHiddenNamespaces: () => set({ hiddenNamespaces: new Set<string>() }),
 
   filterPanelOpen: true,
   toggleFilterPanel: () => set((s) => ({ filterPanelOpen: !s.filterPanelOpen })),

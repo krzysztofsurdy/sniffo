@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import {
   SigmaContainer,
   useRegisterEvents,
@@ -22,6 +22,8 @@ interface GraphInnerProps {
   data: GraphData;
   visibleNodeTypes: Set<string>;
   visibleEdgeTypes: Set<string>;
+  hiddenNamespaces: Set<string>;
+  layoutType: string;
 }
 
 function GraphEvents() {
@@ -48,6 +50,8 @@ function GraphEvents() {
         const label = graph.getNodeAttribute(node, 'label') ?? node;
         drillDown(node, label, 'children');
       },
+      enterNode: () => {},
+      leaveNode: () => {},
     });
   }, [registerEvents, selectNode, toggleNodeSelection, drillDown, sigma]);
 
@@ -207,14 +211,12 @@ function GraphHighlighter() {
     }
 
     if (!selectedNodeId) {
-      setSettings({
-        nodeReducer: null,
-        edgeReducer: null,
-      });
+      setSettings({ nodeReducer: null, edgeReducer: null });
       return;
     }
 
     const graph = sigma.getGraph();
+
     const neighbors = new Set<string>();
     graph.forEachNeighbor(selectedNodeId, (neighbor) => neighbors.add(neighbor));
 
@@ -226,15 +228,16 @@ function GraphHighlighter() {
         if (neighbors.has(node)) {
           return attrs;
         }
-        return { ...attrs, color: (attrs.color ?? '#64748B') + '30', label: '' };
+        return { ...attrs, color: (attrs.color ?? '#64748B').slice(0, 7) + '10', label: '', size: 1 };
       },
       edgeReducer: (edge, attrs) => {
         const src = graph.source(edge);
         const tgt = graph.target(edge);
-        if (src === selectedNodeId || tgt === selectedNodeId) {
+        if ((src === selectedNodeId && neighbors.has(tgt)) ||
+            (tgt === selectedNodeId && neighbors.has(src))) {
           return { ...attrs, size: (attrs.size ?? 1) * 1.5 };
         }
-        return { ...attrs, color: (attrs.color ?? '#45526E') + '15' };
+        return { ...attrs, hidden: true };
       },
     });
   }, [selectedNodeId, selectedNodeIds, blastRadiusActive, blastData, setSettings, sigma]);
@@ -260,34 +263,70 @@ function SearchFocuser() {
   return null;
 }
 
-function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, layoutRef }: GraphInnerProps & { layoutRef: React.MutableRefObject<FA2Layout | null> }) {
+
+function SelectionPulse() {
+  const sigma = useSigma();
+  const selectedNodeId = useUIStore((s) => s.selectedNodeId);
+  const rafRef = useRef<number>(0);
+  const baseSizeRef = useRef<number>(5);
+
+  useEffect(() => {
+    cancelAnimationFrame(rafRef.current);
+    if (!selectedNodeId) return;
+
+    const graph = sigma.getGraph();
+    if (!graph.hasNode(selectedNodeId)) return;
+    baseSizeRef.current = graph.getNodeAttribute(selectedNodeId, 'size') ?? 5;
+
+    const animate = () => {
+      if (!graph.hasNode(selectedNodeId)) return;
+      const pulse = 1 + 0.3 * Math.sin(Date.now() / 300);
+      graph.setNodeAttribute(selectedNodeId, 'size', baseSizeRef.current * pulse);
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      if (graph.hasNode(selectedNodeId)) {
+        graph.setNodeAttribute(selectedNodeId, 'size', baseSizeRef.current);
+      }
+    };
+  }, [selectedNodeId, sigma]);
+
+  return null;
+}
+
+function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType, layoutRef, onGraphLoad }: GraphInnerProps & { layoutRef: React.MutableRefObject<FA2Layout | null>; onGraphLoad: () => void }) {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
 
   const graph = useMemo(
-    () => buildGraphology(data, visibleNodeTypes, visibleEdgeTypes),
-    [data, visibleNodeTypes, visibleEdgeTypes],
+    () => buildGraphology(data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType),
+    [data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType],
   );
 
   useEffect(() => {
     loadGraph(graph);
+    onGraphLoad();
 
     if (layoutRef.current) {
       layoutRef.current.kill();
       layoutRef.current = null;
     }
 
-    if (graph.order === 0) return;
+    if (graph.order === 0 || layoutType !== 'force') return;
 
     const sigmaGraph = sigma.getGraph();
     const layout = new FA2Layout(sigmaGraph, {
       getEdgeWeight: 'size',
       settings: {
-        gravity: 1,
-        scalingRatio: 2,
+        gravity: 0.5,
+        scalingRatio: 5,
         slowDown: 10,
         adjustSizes: true,
         barnesHutOptimize: sigmaGraph.order > 100,
+        strongGravityMode: false,
       },
     });
     layout.start();
@@ -306,7 +345,7 @@ function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, layoutRef }: Gr
         layoutRef.current = null;
       }
     };
-  }, [graph, loadGraph, sigma, layoutRef]);
+  }, [graph, loadGraph, sigma, layoutRef, layoutType]);
 
   return null;
 }
@@ -315,6 +354,8 @@ export default function GraphCanvas() {
   const currentLevel = useUIStore((s) => s.currentLevel);
   const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
   const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
+  const hiddenNamespaces = useUIStore((s) => s.hiddenNamespaces);
+  const layoutType = useUIStore((s) => s.layoutType);
   const drillParentId = useNavigationStore((s) => s.drillParentId);
   const showEdgeLabels = useUIStore((s) => s.showEdgeLabels);
   const layoutRef = useRef<FA2Layout | null>(null);
@@ -349,29 +390,49 @@ export default function GraphCanvas() {
       <LevelNavigator />
       <BlastRadiusControls />
       <SigmaContainer
-        style={{ width: '100%', height: '100%', backgroundColor: '#0D1117' }}
+        style={{ width: '100%', height: '100%', backgroundColor: '#1A1210' }}
         settings={{
           renderLabels: true,
           renderEdgeLabels: showEdgeLabels,
-          labelColor: { color: '#E6EDF3' },
-          edgeLabelColor: { color: '#8B949E' },
+          labelColor: { color: '#FDFCF5' },
+          edgeLabelColor: { color: '#C4B5A5' },
           edgeLabelFont: 'Inter, sans-serif',
           edgeLabelSize: 10,
           labelFont: 'Inter, sans-serif',
           labelSize: 12,
           defaultEdgeType: 'arrow',
-          defaultEdgeColor: '#45526E',
+          defaultEdgeColor: '#5E4A3C',
           stagePadding: 40,
           allowInvalidContainer: true,
+          defaultDrawNodeLabel: (context, data, settings) => {
+            if (!data.label) return;
+            const size = settings.labelSize;
+            const font = settings.labelFont;
+            context.font = `${size}px ${font}`;
+            const textWidth = context.measureText(data.label).width;
+            const pad = 3;
+            const x = data.x + data.size + 3;
+            const y = data.y + size / 3;
+            context.fillStyle = '#1A1210CC';
+            context.beginPath();
+            context.roundRect(x - pad, y - size + 1, textWidth + pad * 2, size + pad, 3);
+            context.fill();
+            context.fillStyle = '#FDFCF5';
+            context.fillText(data.label, x, y);
+          },
         }}
       >
         <GraphLoader
           data={graphData}
           visibleNodeTypes={visibleNodeTypes}
           visibleEdgeTypes={visibleEdgeTypes}
+          hiddenNamespaces={hiddenNamespaces}
+          layoutType={layoutType}
           layoutRef={layoutRef}
+          onGraphLoad={() => {}}
         />
         <GraphEvents />
+        <SelectionPulse />
         <NodeDrag layoutRef={layoutRef} />
         <GraphHighlighter />
         <SearchFocuser />
