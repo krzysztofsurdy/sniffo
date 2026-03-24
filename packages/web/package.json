@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/web",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Web UI for Sniffo codebase knowledge graph",
   "license": "MIT",
   "repository": {
@@ -12,7 +12,9 @@
   "exports": {
     "./package.json": "./package.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },

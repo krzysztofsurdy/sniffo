@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/cli",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "CLI tool for Sniffo codebase knowledge graph",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,9 @@
   },
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },
