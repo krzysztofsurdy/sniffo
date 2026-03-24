@@ -12,6 +12,12 @@ function blendColor(color1: string, color2: string, ratio: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
+function extractNamespace(qualifiedName: string): string {
+  const sep = qualifiedName.includes('\\') ? '\\' : qualifiedName.includes('/') ? '/' : '.';
+  const parts = qualifiedName.split(sep);
+  return parts.length > 1 ? parts.slice(0, -1).join(sep) : '';
+}
+
 export function buildGraphology(
   data: GraphData,
   visibleNodeTypes: Set<string>,
@@ -19,10 +25,26 @@ export function buildGraphology(
 ): Graph {
   const graph = new Graph();
 
+  const visibleNodes = data.nodes.filter((n) => visibleNodeTypes.has(n.type));
+  const namespaces = new Map<string, number>();
+  for (const node of visibleNodes) {
+    const ns = extractNamespace(node.qualifiedName);
+    if (!namespaces.has(ns)) namespaces.set(ns, namespaces.size);
+  }
+
+  const nsCount = Math.max(1, namespaces.size);
+  const radius = nsCount * 8;
+  const nsPositions = new Map<string, { cx: number; cy: number }>();
+  let i = 0;
+  for (const ns of namespaces.keys()) {
+    const angle = (2 * Math.PI * i) / nsCount;
+    nsPositions.set(ns, { cx: radius * Math.cos(angle), cy: radius * Math.sin(angle) });
+    i++;
+  }
+
   const visibleNodeIds = new Set<string>();
 
-  for (const node of data.nodes) {
-    if (!visibleNodeTypes.has(node.type)) continue;
+  for (const node of visibleNodes) {
     visibleNodeIds.add(node.id);
 
     const daysSince = node.lastAnalyzedAt
@@ -42,10 +64,14 @@ export function buildGraphology(
       : freshnessState === 'unknown' ? blendColor(baseColor, '#6E7681', 0.6)
       : baseColor;
 
+    const ns = extractNamespace(node.qualifiedName);
+    const center = nsPositions.get(ns) ?? { cx: 0, cy: 0 };
+    const jitter = 12;
+
     graph.addNode(node.id, {
       label: node.shortName,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
+      x: center.cx + (Math.random() - 0.5) * jitter,
+      y: center.cy + (Math.random() - 0.5) * jitter,
       size: node.type === 'SYSTEM' ? 12 : node.type === 'PACKAGE' ? 10 : node.type === 'MODULE' ? 8 : 5,
       color,
       nodeType: node.type,

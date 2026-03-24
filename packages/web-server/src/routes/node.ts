@@ -11,6 +11,17 @@ export function registerNodeRoutes(app: FastifyInstance, store: GraphStore): voi
     const incoming = await store.getIncomingEdges(node.id);
     const outgoing = await store.getOutgoingEdges(node.id);
 
-    return { success: true, data: { node, incoming, outgoing } };
+    const peerIds = new Set<string>();
+    for (const e of incoming) peerIds.add(e.source);
+    for (const e of outgoing) peerIds.add(e.target);
+    peerIds.delete(node.id);
+
+    const peerNodes = new Map<string, { shortName: string; type: string }>();
+    for (const id of peerIds) {
+      const peer = await store.getNodeById(id);
+      if (peer) peerNodes.set(id, { shortName: peer.shortName, type: peer.type });
+    }
+
+    return { success: true, data: { node, incoming, outgoing, peerNodes: Object.fromEntries(peerNodes) } };
   });
 }

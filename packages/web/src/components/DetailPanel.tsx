@@ -28,7 +28,7 @@ export default function DetailPanel() {
 
   if (!data) return null;
 
-  const { node, incoming, outgoing } = data;
+  const { node, incoming, outgoing, peerNodes } = data;
 
   const daysSince = node.lastAnalyzedAt
     ? Math.floor((Date.now() - new Date(node.lastAnalyzedAt).getTime()) / (1000 * 60 * 60 * 24))
@@ -107,7 +107,7 @@ export default function DetailPanel() {
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getEdgeColor(edge.type) }} />
                 <span className="text-text-secondary">{edge.type}</span>
-                <span className="text-text-link truncate ml-1">{edge.source.slice(0, 16)}...</span>
+                <span className="text-text-link truncate ml-1">{peerNodes[edge.source]?.shortName ?? edge.source}</span>
               </button>
             ))}
           </div>
@@ -126,7 +126,7 @@ export default function DetailPanel() {
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getEdgeColor(edge.type) }} />
                 <span className="text-text-secondary">{edge.type}</span>
-                <span className="text-text-link truncate ml-1">{edge.target.slice(0, 16)}...</span>
+                <span className="text-text-link truncate ml-1">{peerNodes[edge.target]?.shortName ?? edge.target}</span>
               </button>
             ))}
           </div>

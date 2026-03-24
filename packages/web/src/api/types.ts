@@ -32,6 +32,7 @@ export interface NodeDetail {
   node: GraphNode;
   incoming: GraphEdge[];
   outgoing: GraphEdge[];
+  peerNodes: Record<string, { shortName: string; type: string }>;
 }
 
 export interface StalenessReport {

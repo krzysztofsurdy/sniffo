@@ -57,44 +57,69 @@ function GraphEvents() {
 function NodeDrag({ layoutRef }: { layoutRef: React.RefObject<FA2Layout | null> }) {
   const sigma = useSigma();
   const draggedNodeRef = useRef<string | null>(null);
+  const isDraggingRef = useRef(false);
+  const downNodeRef = useRef<string | null>(null);
 
   const handleDown = useCallback(
     (e: { node: string }) => {
-      draggedNodeRef.current = e.node;
-      const graph = sigma.getGraph();
-      graph.setNodeAttribute(e.node, 'highlighted', true);
-      graph.setNodeAttribute(e.node, 'fixed', true);
-      if (layoutRef.current && !layoutRef.current.isRunning()) {
-        layoutRef.current.start();
-      }
-      sigma.getCamera().disable();
+      downNodeRef.current = e.node;
+      isDraggingRef.current = false;
     },
-    [sigma, layoutRef],
+    [],
   );
 
   const handleMove = useCallback(
     (coords: { x: number; y: number }) => {
-      if (!draggedNodeRef.current) return;
+      if (!downNodeRef.current) return;
+
+      if (!isDraggingRef.current) {
+        isDraggingRef.current = true;
+        draggedNodeRef.current = downNodeRef.current;
+        const graph = sigma.getGraph();
+        graph.setNodeAttribute(downNodeRef.current, 'highlighted', true);
+        graph.setNodeAttribute(downNodeRef.current, 'fixed', true);
+
+        graph.forEachNeighbor(downNodeRef.current, (neighbor) => {
+          graph.setNodeAttribute(neighbor, 'fixed', true);
+        });
+
+        sigma.getCamera().disable();
+      }
+
       const pos = sigma.viewportToGraph(coords);
-      sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'x', pos.x);
-      sigma.getGraph().setNodeAttribute(draggedNodeRef.current, 'y', pos.y);
+      sigma.getGraph().setNodeAttribute(draggedNodeRef.current!, 'x', pos.x);
+      sigma.getGraph().setNodeAttribute(draggedNodeRef.current!, 'y', pos.y);
     },
     [sigma],
   );
 
   const handleUp = useCallback(() => {
+    const wasDragging = isDraggingRef.current;
     if (draggedNodeRef.current) {
       const graph = sigma.getGraph();
       graph.removeNodeAttribute(draggedNodeRef.current, 'highlighted');
       graph.removeNodeAttribute(draggedNodeRef.current, 'fixed');
+
+      graph.forEachNeighbor(draggedNodeRef.current, (neighbor) => {
+        graph.removeNodeAttribute(neighbor, 'fixed');
+      });
+
       draggedNodeRef.current = null;
     }
+    downNodeRef.current = null;
+    isDraggingRef.current = false;
     sigma.getCamera().enable();
-    setTimeout(() => {
-      if (layoutRef.current?.isRunning()) {
-        layoutRef.current.stop();
+
+    if (wasDragging) {
+      if (layoutRef.current && !layoutRef.current.isRunning()) {
+        layoutRef.current.start();
       }
-    }, 2000);
+      setTimeout(() => {
+        if (layoutRef.current?.isRunning()) {
+          layoutRef.current.stop();
+        }
+      }, 1500);
+    }
   }, [sigma, layoutRef]);
 
   useEffect(() => {
