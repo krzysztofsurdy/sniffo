@@ -13,15 +13,15 @@ export const NODE_COLORS: Record<string, string> = {
 };
 
 export const EDGE_COLORS: Record<string, string> = {
-  CALLS: '#48A9E0',
-  EXTENDS: '#644D73',
-  IMPLEMENTS: '#8BC37A',
-  USES_TRAIT: '#FBCB5F',
-  INJECTS: '#F18BB3',
-  CONTAINS: '#644D73',
-  IMPORTS: '#8BC37A',
-  DEPENDS_ON: '#644D73',
-  INSTANTIATES: '#48A9E0',
+  CALLS: '#3B8DBF',
+  EXTENDS: '#4F3D5E',
+  IMPLEMENTS: '#6FA462',
+  USES_TRAIT: '#D4A94C',
+  INJECTS: '#CC7495',
+  CONTAINS: '#4F3D5E',
+  IMPORTS: '#6FA462',
+  DEPENDS_ON: '#4F3D5E',
+  INSTANTIATES: '#3B8DBF',
 };
 
 export function getNodeColor(type: string): string {

@@ -174,7 +174,7 @@ export function buildGraphology(
         const radius = Math.max(cumulativeRadius, minRadius);
         cumulativeRadius = radius;
         for (let i = 0; i < ringGroups.length; i++) {
-          const angle = (2 * Math.PI * i) / ringGroups.length - Math.PI / 2;
+          const angle = (2 * Math.PI * i) / ringGroups.length;
           groupCenters.set(ringGroups[i], {
             cx: radius * Math.cos(angle),
             cy: radius * Math.sin(angle),
