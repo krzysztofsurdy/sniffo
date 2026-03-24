@@ -30,6 +30,7 @@ export interface ProgressEvent {
   current: number;
   total: number;
   file?: string;
+  detail?: string;
 }
 
 export interface PipelineOptions {
@@ -230,21 +231,30 @@ export class AnalysisPipeline {
     }
 
     // Batch write nodes and edges
-    options.onProgress?.({ phase: 'storing', current: 0, total: allNewNodes.length + allNewEdges.length });
+    const totalWrites = allNewNodes.length + allNewEdges.length;
     const WRITE_BATCH = 5000;
+    let written = 0;
+    options.onProgress?.({ phase: 'storing', current: 0, total: totalWrites, detail: `Writing ${allNewNodes.length} nodes...` });
     for (let i = 0; i < allNewNodes.length; i += WRITE_BATCH) {
       await this.store.upsertNodes(allNewNodes.slice(i, i + WRITE_BATCH));
-      options.onProgress?.({ phase: 'storing', current: Math.min(i + WRITE_BATCH, allNewNodes.length), total: allNewNodes.length + allNewEdges.length });
+      written = Math.min(i + WRITE_BATCH, allNewNodes.length);
+      options.onProgress?.({ phase: 'storing', current: written, total: totalWrites, detail: `Nodes ${written}/${allNewNodes.length}` });
     }
+    options.onProgress?.({ phase: 'storing', current: written, total: totalWrites, detail: `Writing ${allNewEdges.length} containment edges...` });
     for (let i = 0; i < allNewEdges.length; i += WRITE_BATCH) {
       await this.store.upsertEdges(allNewEdges.slice(i, i + WRITE_BATCH));
+      written = allNewNodes.length + Math.min(i + WRITE_BATCH, allNewEdges.length);
+      options.onProgress?.({ phase: 'storing', current: written, total: totalWrites, detail: `Edges ${Math.min(i + WRITE_BATCH, allNewEdges.length)}/${allNewEdges.length}` });
     }
 
+    options.onProgress?.({ phase: 'resolution', current: 0, total: parsedFiles.length, detail: 'Building symbol index...' });
     const allNodes = await this.store.getAllNodes();
     const symbolIndex = this.buildSymbolIndex(allNodes);
 
     const refEdges: StoredEdge[] = [];
-    for (const parsed of parsedFiles) {
+    for (let fi = 0; fi < parsedFiles.length; fi++) {
+      const parsed = parsedFiles[fi];
+      options.onProgress?.({ phase: 'resolution', current: fi, total: parsedFiles.length, detail: `Resolving ${parsed.filePath}` });
       const currentNamespace = extractNamespaceFromSymbols(parsed);
 
       const result = resolveReferences(
@@ -279,16 +289,18 @@ export class AnalysisPipeline {
     }
 
     // Batch write reference edges
+    options.onProgress?.({ phase: 'resolution', current: parsedFiles.length, total: parsedFiles.length, detail: `Writing ${refEdges.length} reference edges...` });
     for (let i = 0; i < refEdges.length; i += WRITE_BATCH) {
       await this.store.upsertEdges(refEdges.slice(i, i + WRITE_BATCH));
+      options.onProgress?.({ phase: 'resolution', current: parsedFiles.length, total: parsedFiles.length, detail: `Writing edges ${Math.min(i + WRITE_BATCH, refEdges.length)}/${refEdges.length}` });
     }
 
-    options.onProgress?.({ phase: 'resolution', current: parsedFiles.length, total: parsedFiles.length });
-
+    options.onProgress?.({ phase: 'hierarchy', current: 0, total: 1, detail: 'Detecting workspaces...' });
     const workspaces = options.workspaces !== undefined
       ? options.workspaces
       : await detectWorkspaces(options.rootDir);
 
+    options.onProgress?.({ phase: 'hierarchy', current: 0, total: 1, detail: 'Building hierarchy...' });
     const componentNodes = allNodes.filter((n) => n.level === GraphLevel.COMPONENT);
     const hierarchy = buildHierarchy(componentNodes, options.projectName, workspaces);
 
@@ -297,6 +309,7 @@ export class AnalysisPipeline {
 
     options.onProgress?.({ phase: 'hierarchy', current: 1, total: 1 });
 
+    options.onProgress?.({ phase: 'aggregation', current: 0, total: 1, detail: 'Loading all edges...' });
     const allEdges = await this.store.getAllEdges();
     const codeEdges = allEdges.filter((e) => e.level === GraphLevel.CODE && e.type !== EdgeType.CONTAINS);
 
@@ -312,9 +325,12 @@ export class AnalysisPipeline {
     const containerNodeIds = new Set(
       allNodes.filter(n => n.level === GraphLevel.CONTAINER).map(n => n.id),
     );
+    options.onProgress?.({ phase: 'aggregation', current: 0, total: 1, detail: `Aggregating ${codeEdges.length} code edges...` });
     const aggregated = aggregateEdges(codeEdges, containmentMap, componentNodeIds, containerNodeIds);
+    options.onProgress?.({ phase: 'aggregation', current: 0, total: 1, detail: `Writing ${aggregated.length} aggregated edges...` });
     for (let i = 0; i < aggregated.length; i += WRITE_BATCH) {
       await this.store.upsertEdges(aggregated.slice(i, i + WRITE_BATCH));
+      options.onProgress?.({ phase: 'aggregation', current: 0, total: 1, detail: `Writing edges ${Math.min(i + WRITE_BATCH, aggregated.length)}/${aggregated.length}` });
     }
 
     options.onProgress?.({ phase: 'aggregation', current: 1, total: 1 });
