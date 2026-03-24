@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/web",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Web UI for Sniffo codebase knowledge graph",
   "license": "MIT",
   "repository": {
