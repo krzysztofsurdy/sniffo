@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/analyzer",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Tree-sitter code parsers and analysis pipeline for Sniffo",
   "license": "MIT",
   "repository": {
