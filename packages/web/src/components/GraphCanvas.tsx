@@ -26,13 +26,20 @@ interface GraphInnerProps {
 
 function GraphEvents() {
   const selectNode = useUIStore((s) => s.selectNode);
+  const toggleNodeSelection = useUIStore((s) => s.toggleNodeSelection);
   const drillDown = useNavigationStore((s) => s.drillDown);
   const sigma = useSigma();
   const registerEvents = useRegisterEvents();
 
   useEffect(() => {
     registerEvents({
-      clickNode: ({ node }) => selectNode(node),
+      clickNode: ({ node, event }) => {
+        if (event.original.shiftKey) {
+          toggleNodeSelection(node);
+        } else {
+          selectNode(node);
+        }
+      },
       clickStage: () => selectNode(null),
       doubleClickNode: ({ node }) => {
         const graph = sigma.getGraph();
@@ -40,7 +47,7 @@ function GraphEvents() {
         drillDown(node, label, 'children');
       },
     });
-  }, [registerEvents, selectNode, drillDown, sigma]);
+  }, [registerEvents, selectNode, toggleNodeSelection, drillDown, sigma]);
 
   return null;
 }
@@ -81,7 +88,12 @@ function NodeDrag({ layoutRef }: { layoutRef: React.RefObject<FA2Layout | null> 
       draggedNodeRef.current = null;
     }
     sigma.getCamera().enable();
-  }, [sigma]);
+    setTimeout(() => {
+      if (layoutRef.current?.isRunning()) {
+        layoutRef.current.stop();
+      }
+    }, 2000);
+  }, [sigma, layoutRef]);
 
   useEffect(() => {
     sigma.on('downNode', handleDown);
@@ -101,6 +113,7 @@ function NodeDrag({ layoutRef }: { layoutRef: React.RefObject<FA2Layout | null> 
 function GraphHighlighter() {
   const sigma = useSigma();
   const selectedNodeId = useUIStore((s) => s.selectedNodeId);
+  const selectedNodeIds = useUIStore((s) => s.selectedNodeIds);
   const blastRadiusActive = useNavigationStore((s) => s.blastRadiusActive);
   const blastRadiusDepth = useNavigationStore((s) => s.blastRadiusDepth);
   const setSettings = useSetSettings();
@@ -111,6 +124,27 @@ function GraphHighlighter() {
   );
 
   useEffect(() => {
+    if (selectedNodeIds.size > 0) {
+      setSettings({
+        nodeReducer: (node, attrs) => {
+          if (selectedNodeIds.has(node)) {
+            return { ...attrs, size: (attrs.size ?? 5) * 1.3 };
+          }
+          return { ...attrs, color: (attrs.color ?? '#64748B') + '30', label: '' };
+        },
+        edgeReducer: (edge, attrs) => {
+          const graph = sigma.getGraph();
+          const src = graph.source(edge);
+          const tgt = graph.target(edge);
+          if (selectedNodeIds.has(src) && selectedNodeIds.has(tgt)) {
+            return { ...attrs, size: (attrs.size ?? 1) * 1.5 };
+          }
+          return { ...attrs, color: (attrs.color ?? '#45526E') + '15' };
+        },
+      });
+      return;
+    }
+
     if (blastRadiusActive && selectedNodeId && blastData) {
       const affectedIds = new Set(blastData.affectedNodes.map((n) => n.id));
       affectedIds.add(selectedNodeId);
@@ -176,7 +210,7 @@ function GraphHighlighter() {
         return { ...attrs, color: (attrs.color ?? '#45526E') + '15' };
       },
     });
-  }, [selectedNodeId, blastRadiusActive, blastData, setSettings, sigma]);
+  }, [selectedNodeId, selectedNodeIds, blastRadiusActive, blastData, setSettings, sigma]);
 
   return null;
 }
@@ -225,13 +259,21 @@ function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, layoutRef }: Gr
         gravity: 1,
         scalingRatio: 2,
         slowDown: 10,
+        adjustSizes: true,
         barnesHutOptimize: sigmaGraph.order > 100,
       },
     });
     layout.start();
     layoutRef.current = layout;
 
+    const timer = setTimeout(() => {
+      if (layoutRef.current?.isRunning()) {
+        layoutRef.current.stop();
+      }
+    }, 3000);
+
     return () => {
+      clearTimeout(timer);
       if (layoutRef.current) {
         layoutRef.current.kill();
         layoutRef.current = null;

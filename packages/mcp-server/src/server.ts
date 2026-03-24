@@ -6,6 +6,7 @@ import { registerSearchTool } from './tools/search.js';
 import { registerReferencesTools } from './tools/references.js';
 import { registerFreshnessTool } from './tools/freshness.js';
 import { registerRefreshTool } from './tools/refresh.js';
+import { registerViewsTools } from './tools/views.js';
 
 export function createMcpServer(store: GraphStore, projectDir: string): McpServer {
   const server = new McpServer({
@@ -18,6 +19,7 @@ export function createMcpServer(store: GraphStore, projectDir: string): McpServe
   registerReferencesTools(server, store);
   registerFreshnessTool(server, store);
   registerRefreshTool(server, store, projectDir);
+  registerViewsTools(server, store, projectDir);
 
   return server;
 }
