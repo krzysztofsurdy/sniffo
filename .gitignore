@@ -1,7 +1,7 @@
 node_modules/
 dist/
 .turbo/
-.contextualizer/
+.sniffo/
 *.wasm
 !grammars/.gitkeep
 .env

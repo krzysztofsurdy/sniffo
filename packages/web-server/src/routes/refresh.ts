@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { AnalysisPipeline, ParserRegistry, PhpParser } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { AnalysisPipeline, ParserRegistry, PhpParser } from '@sniffo/analyzer';
 
 export function registerRefreshRoutes(app: FastifyInstance, store: GraphStore, projectDir: string): void {
   app.post<{ Body: { files?: string[] } }>('/api/refresh', async (request) => {

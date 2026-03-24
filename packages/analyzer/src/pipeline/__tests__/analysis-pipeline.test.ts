@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { GraphLevel, NodeType, EdgeType } from '@contextualizer/core';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { GraphLevel, NodeType, EdgeType } from '@sniffo/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';
@@ -203,6 +203,73 @@ class Bar {}
 
     expect(result2.filesAnalyzed).toBe(0);
     expect(result2.filesSkipped).toBe(1);
+  });
+
+  it('auto-detects workspaces and creates PACKAGE nodes for monorepo', async () => {
+    await writeFile(
+      join(tempDir, 'package.json'),
+      JSON.stringify({ name: 'monorepo', workspaces: ['packages/*'] }),
+    );
+
+    await mkdir(join(tempDir, 'packages', 'core', 'src'), { recursive: true });
+    await writeFile(
+      join(tempDir, 'packages', 'core', 'package.json'),
+      JSON.stringify({ name: '@mono/core' }),
+    );
+    await writeFile(
+      join(tempDir, 'packages', 'core', 'src', 'CoreService.php'),
+      `<?php
+namespace Core;
+
+class CoreService
+{
+    public function handle(): void {}
+}
+`,
+    );
+
+    await mkdir(join(tempDir, 'packages', 'api', 'src'), { recursive: true });
+    await writeFile(
+      join(tempDir, 'packages', 'api', 'package.json'),
+      JSON.stringify({ name: '@mono/api' }),
+    );
+    await writeFile(
+      join(tempDir, 'packages', 'api', 'src', 'ApiController.php'),
+      `<?php
+namespace Api;
+
+class ApiController
+{
+    public function index(): void {}
+}
+`,
+    );
+
+    const result = await pipeline.analyze({
+      rootDir: tempDir,
+      projectName: 'MonoRepo',
+      includePatterns: ['**/*.php'],
+    });
+
+    expect(result.filesAnalyzed).toBe(2);
+    expect(result.errors).toHaveLength(0);
+
+    const allNodes = await store.getAllNodes();
+    const packageNodes = allNodes.filter((n) => n.type === NodeType.PACKAGE);
+    expect(packageNodes.length).toBe(2);
+
+    const packageNames = packageNodes.map((n) => n.qualifiedName).sort();
+    expect(packageNames).toEqual(['@mono/api', '@mono/core']);
+
+    const systemNode = allNodes.find((n) => n.type === NodeType.SYSTEM);
+    expect(systemNode).toBeDefined();
+    expect(systemNode!.qualifiedName).toBe('MonoRepo');
+
+    const allEdges = await store.getAllEdges();
+    const systemToPackageEdges = allEdges.filter(
+      (e) => e.source === systemNode!.id && e.type === 'CONTAINS',
+    );
+    expect(systemToPackageEdges.length).toBeGreaterThanOrEqual(2);
   });
 
   it('returns analysis result with correct counts', async () => {

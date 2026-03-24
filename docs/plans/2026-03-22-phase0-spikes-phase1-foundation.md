@@ -4,7 +4,7 @@
 
 **Goal:** Establish the monorepo, core type system, parser interface, and a working PHP parser that extracts classes, interfaces, traits, enums, functions, methods, properties, and constants from single PHP files with intra-file relationship extraction.
 
-**Architecture:** TypeScript monorepo (pnpm workspaces + Turborepo) with two packages: `@contextualizer/core` (types, parser interface, graph schema) and `@contextualizer/analyzer` (Tree-sitter PHP integration, single-file extraction). Storage abstraction defined but not implemented until Phase 2.
+**Architecture:** TypeScript monorepo (pnpm workspaces + Turborepo) with two packages: `@sniffo/core` (types, parser interface, graph schema) and `@sniffo/analyzer` (Tree-sitter PHP integration, single-file extraction). Storage abstraction defined but not implemented until Phase 2.
 
 **Tech Stack:** TypeScript 5.7+, pnpm workspaces, Turborepo, Vitest, Tree-sitter (web-tree-sitter + tree-sitter-php WASM), Node.js 20+
 
@@ -252,7 +252,7 @@ git commit -m "spike: verify tree-sitter-php grammar for PHP 8.3+ features"
 **Step 1: Initialize git repo**
 
 ```bash
-cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
+cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectSniffo
 git init
 ```
 
@@ -260,7 +260,7 @@ git init
 
 ```json
 {
-  "name": "llm-project-contextualizer",
+  "name": "llm-project-sniffo",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "engines": {
@@ -338,7 +338,7 @@ packages:
 node_modules/
 dist/
 .turbo/
-.contextualizer/
+.sniffo/
 *.wasm
 !packages/analyzer/grammars/.gitkeep
 .env
@@ -352,12 +352,12 @@ coverage/
 20
 ```
 
-**Step 8: Create @contextualizer/core package**
+**Step 8: Create @sniffo/core package**
 
 `packages/core/package.json`:
 ```json
 {
-  "name": "@contextualizer/core",
+  "name": "@sniffo/core",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -393,12 +393,12 @@ export * from './types/analysis.js';
 export * from './types/parser.js';
 ```
 
-**Step 9: Create @contextualizer/analyzer package**
+**Step 9: Create @sniffo/analyzer package**
 
 `packages/analyzer/package.json`:
 ```json
 {
-  "name": "@contextualizer/analyzer",
+  "name": "@sniffo/analyzer",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -412,7 +412,7 @@ export * from './types/parser.js';
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*"
+    "@sniffo/core": "workspace:*"
   }
 }
 ```
@@ -950,7 +950,7 @@ git commit -m "feat(core): add parser interface and analysis type definitions"
 // packages/analyzer/src/parsers/__tests__/parser-registry.test.ts
 import { describe, it, expect, vi } from 'vitest';
 import { ParserRegistry } from '../parser-registry.js';
-import type { LanguageParser, ParsedFile } from '@contextualizer/core';
+import type { LanguageParser, ParsedFile } from '@sniffo/core';
 
 function createMockParser(lang: string, extensions: string[]): LanguageParser {
   return {
@@ -1008,7 +1008,7 @@ cd packages/analyzer && pnpm test
 
 ```typescript
 // packages/analyzer/src/parsers/parser-registry.ts
-import type { LanguageParser } from '@contextualizer/core';
+import type { LanguageParser } from '@sniffo/core';
 
 export class ParserRegistry {
   private parsers: Map<string, LanguageParser> = new Map();
@@ -1307,7 +1307,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PhpParser } from '../php-parser.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SymbolKind, Modifier } from '@contextualizer/core';
+import { SymbolKind, Modifier } from '@sniffo/core';
 
 const FIXTURES = join(__dirname, '../../../../test/fixtures/php-project/src');
 
@@ -1521,7 +1521,7 @@ import {
   SymbolKind,
   Modifier,
   ReferenceKind,
-} from '@contextualizer/core';
+} from '@sniffo/core';
 import { findChildByType, findChildrenByType, findDescendantsByType, getNodeText } from './node-utils.js';
 
 interface VisitorContext {
@@ -2007,7 +2007,7 @@ import Parser from 'web-tree-sitter';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { LanguageParser, ParsedFile } from '@contextualizer/core';
+import type { LanguageParser, ParsedFile } from '@sniffo/core';
 import { visitTree } from './ast-visitor.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -2089,7 +2089,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PhpParser } from '../php-parser.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ReferenceKind } from '@contextualizer/core';
+import { ReferenceKind } from '@sniffo/core';
 
 const FIXTURES = join(__dirname, '../../../../test/fixtures/php-project/src');
 

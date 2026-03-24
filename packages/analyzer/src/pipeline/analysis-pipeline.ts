@@ -14,8 +14,8 @@ import {
   type ParsedSymbol,
   type SymbolKind,
   type ReferenceKind,
-} from '@contextualizer/core';
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
+} from '@sniffo/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
 import type { ParserRegistry } from '../parsers/parser-registry.js';
 import { discoverFiles, type DiscoveredFile } from './file-discovery.js';
 import { detectChanges, type FileChange } from './change-detector.js';
@@ -23,6 +23,14 @@ import { resolveReferences, type SymbolIndex } from './reference-resolver.js';
 import { buildHierarchy } from './hierarchy-builder.js';
 import { aggregateEdges } from './edge-aggregator.js';
 import { cascadeInvalidation } from './cascade-invalidator.js';
+import { detectWorkspaces, type WorkspaceInfo } from './workspace-detector.js';
+
+export interface ProgressEvent {
+  phase: 'discovery' | 'parsing' | 'resolution' | 'hierarchy' | 'aggregation';
+  current: number;
+  total: number;
+  file?: string;
+}
 
 export interface PipelineOptions {
   rootDir: string;
@@ -30,6 +38,8 @@ export interface PipelineOptions {
   includePatterns?: string[];
   excludePatterns?: string[];
   files?: string[];
+  workspaces?: WorkspaceInfo | null;
+  onProgress?: (event: ProgressEvent) => void;
 }
 
 interface ChangeDetectionResult {
@@ -114,6 +124,8 @@ export class AnalysisPipeline {
 
     const { filesToProcess, filesScanned, filesSkipped } = changeResult;
 
+    options.onProgress?.({ phase: 'discovery', current: filesToProcess.length, total: filesToProcess.length });
+
     if (cascade) {
       const changedFilePaths = filesToProcess.map((f) => f.file.relativePath);
       if (changedFilePaths.length > 0) {
@@ -123,7 +135,10 @@ export class AnalysisPipeline {
 
     const parsedFiles: ParsedFile[] = [];
 
-    for (const fileChange of filesToProcess) {
+    for (let fileIndex = 0; fileIndex < filesToProcess.length; fileIndex++) {
+      const fileChange = filesToProcess[fileIndex];
+      options.onProgress?.({ phase: 'parsing', current: fileIndex + 1, total: filesToProcess.length, file: fileChange.file.relativePath });
+
       const parser = this.parserRegistry.getParserForFile(fileChange.file.absolutePath);
       if (!parser) {
         continue;
@@ -239,8 +254,14 @@ export class AnalysisPipeline {
       }
     }
 
+    options.onProgress?.({ phase: 'resolution', current: parsedFiles.length, total: parsedFiles.length });
+
+    const workspaces = options.workspaces !== undefined
+      ? options.workspaces
+      : await detectWorkspaces(options.rootDir);
+
     const componentNodes = allNodes.filter((n) => n.level === GraphLevel.COMPONENT);
-    const hierarchy = buildHierarchy(componentNodes, options.projectName);
+    const hierarchy = buildHierarchy(componentNodes, options.projectName, workspaces);
 
     await this.store.upsertNode(hierarchy.systemNode);
     for (const containerNode of hierarchy.containerNodes) {
@@ -249,6 +270,8 @@ export class AnalysisPipeline {
     for (const edge of hierarchy.containmentEdges) {
       await this.store.upsertEdge(edge);
     }
+
+    options.onProgress?.({ phase: 'hierarchy', current: 1, total: 1 });
 
     const allEdges = await this.store.getAllEdges();
     const codeEdges = allEdges.filter((e) => e.level === GraphLevel.CODE && e.type !== EdgeType.CONTAINS);
@@ -263,6 +286,8 @@ export class AnalysisPipeline {
     for (const edge of aggregated) {
       await this.store.upsertEdge(edge);
     }
+
+    options.onProgress?.({ phase: 'aggregation', current: 1, total: 1 });
 
     const filesAnalyzed = filesToProcess.length - filesFailed;
 

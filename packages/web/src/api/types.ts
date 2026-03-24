@@ -80,6 +80,16 @@ export interface CyclesData {
   count: number;
 }
 
+export interface WorkspacePackage {
+  name: string;
+  path: string;
+}
+
+export interface WorkspaceData {
+  type: 'pnpm' | 'npm' | 'composer';
+  packages: WorkspacePackage[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

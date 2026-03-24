@@ -1,0 +1,9 @@
+{
+  "name": "sniffo",
+  "description": "Codebase knowledge graph -- analyzes your project structure, dependencies, and relationships. Provides search, blast radius, cycle detection, and interactive graph visualization.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Krzysztof Surdy"
+  },
+  "keywords": ["codebase", "knowledge-graph", "architecture", "dependencies", "analysis"]
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
-import type { StoredEdge } from '@contextualizer/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
+import type { StoredEdge } from '@sniffo/storage';
 import { aggregateEdges } from '../edge-aggregator.js';
 
 describe('aggregateEdges', () => {
@@ -75,6 +75,63 @@ describe('aggregateEdges', () => {
     const result = aggregateEdges(l4Edges, extendedContainment);
     const l3Edges = result.filter(e => e.level === GraphLevel.COMPONENT);
     expect(l3Edges).toHaveLength(0);
+  });
+
+  it('tags cross-package edges in metadata', () => {
+    const crossContainment = new Map<string, string>([
+      ['method1', 'componentA'],
+      ['method2', 'componentB'],
+      ['componentA', 'moduleA'],
+      ['componentB', 'moduleB'],
+      ['moduleA', 'packageA'],
+      ['moduleB', 'packageB'],
+    ]);
+
+    const l4Edges: StoredEdge[] = [{
+      id: createEdgeId('method1', 'method2', EdgeType.CALLS),
+      source: 'method1',
+      target: 'method2',
+      type: EdgeType.CALLS,
+      level: GraphLevel.CODE,
+      weight: 1.0,
+      metadata: {},
+    }];
+
+    const result = aggregateEdges(l4Edges, crossContainment);
+
+    const l3Edge = result.find(e => e.level === GraphLevel.COMPONENT);
+    expect(l3Edge).toBeDefined();
+
+    const l2Edge = result.find(e => e.level === GraphLevel.CONTAINER);
+    expect(l2Edge).toBeDefined();
+    expect(l2Edge!.metadata.crossPackage).toBe(true);
+  });
+
+  it('does not tag intra-package edges as cross-package', () => {
+    const samePackageContainment = new Map<string, string>([
+      ['method1', 'componentA'],
+      ['method2', 'componentB'],
+      ['componentA', 'moduleA'],
+      ['componentB', 'moduleB'],
+      ['moduleA', 'packageA'],
+      ['moduleB', 'packageA'],
+    ]);
+
+    const l4Edges: StoredEdge[] = [{
+      id: createEdgeId('method1', 'method2', EdgeType.CALLS),
+      source: 'method1',
+      target: 'method2',
+      type: EdgeType.CALLS,
+      level: GraphLevel.CODE,
+      weight: 1.0,
+      metadata: {},
+    }];
+
+    const result = aggregateEdges(l4Edges, samePackageContainment);
+
+    const l2Edge = result.find(e => e.level === GraphLevel.CONTAINER);
+    expect(l2Edge).toBeDefined();
+    expect(l2Edge!.metadata.crossPackage).toBeUndefined();
   });
 
   it('increments weight for multiple edges between same pair', () => {

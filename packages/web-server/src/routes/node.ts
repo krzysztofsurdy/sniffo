@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
+import type { GraphStore } from '@sniffo/storage';
 
 export function registerNodeRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get<{ Params: { id: string } }>('/api/node/:id', async (request, reply) => {

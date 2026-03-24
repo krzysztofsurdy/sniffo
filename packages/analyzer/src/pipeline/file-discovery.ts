@@ -13,7 +13,7 @@ const DEFAULT_EXCLUDES = [
   'vendor/**',
   'node_modules/**',
   '.git/**',
-  '.contextualizer/**',
+  '.sniffo/**',
   'dist/**',
   'build/**',
 ];

@@ -1,4 +1,4 @@
-import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData } from './types';
+import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData } from './types';
 
 const BASE_URL = '/api';
 
@@ -28,4 +28,5 @@ export const api = {
   getChildren: (nodeId: string) => fetchJson<ChildrenData>(`/node/${encodeURIComponent(nodeId)}/children`),
   getBlastRadius: (nodeId: string, depth: number) => fetchJson<BlastRadiusData>(`/blast-radius/${encodeURIComponent(nodeId)}?depth=${depth}`),
   getCycles: () => fetchJson<CyclesData>('/cycles'),
+  getWorkspaces: () => fetchJson<WorkspaceData | null>('/workspaces'),
 };

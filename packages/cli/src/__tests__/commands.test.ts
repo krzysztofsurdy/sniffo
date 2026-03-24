@@ -19,10 +19,10 @@ describe('CLI commands', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('runAnalyze creates .contextualizer directory and DB', async () => {
+  it('runAnalyze creates .sniffo directory and DB', async () => {
     const result = await runAnalyze(tempDir);
     expect(result.filesAnalyzed).toBe(1);
-    expect(existsSync(join(tempDir, '.contextualizer'))).toBe(true);
+    expect(existsSync(join(tempDir, '.sniffo'))).toBe(true);
   });
 
   it('runUpdate only processes changed files', async () => {

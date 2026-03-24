@@ -1,4 +1,4 @@
-# llmProjectContextualizer -- UI/UX Design Specification
+# llmProjectSniffo -- UI/UX Design Specification
 
 Version: 1.0.0
 Date: 2026-03-22
@@ -661,7 +661,7 @@ Displayed in the bottom bar, collapsible.
 |                                              |
 |          [Run Analysis]                      |
 |                                              |
-|   $ contextualizer analyze ./src             |
+|   $ sniffo analyze ./src             |
 |                                              |
 +----------------------------------------------+
 ```

@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Deliver the MCP server so Claude Code can query the knowledge graph, add `lpc init` and `lpc serve` CLI commands, and build the Fastify HTTP API.
+**Goal:** Deliver the MCP server so Claude Code can query the knowledge graph, add `sniffo init` and `sniffo serve` CLI commands, and build the Fastify HTTP API.
 
-**Architecture:** New `@contextualizer/mcp-server` package using @modelcontextprotocol/sdk. New `@contextualizer/web-server` package using Fastify. Extend CLI with `init` and `serve` commands. Graph query helpers in analyzer package. Embeddings/semantic search deferred to a future phase.
+**Architecture:** New `@sniffo/mcp-server` package using @modelcontextprotocol/sdk. New `@sniffo/web-server` package using Fastify. Extend CLI with `init` and `serve` commands. Graph query helpers in analyzer package. Embeddings/semantic search deferred to a future phase.
 
 **Tech Stack:** @modelcontextprotocol/sdk, Fastify, zod, existing DuckDB store + pipeline
 
@@ -26,8 +26,8 @@
 ```typescript
 // packages/analyzer/src/query/__tests__/graph-queries.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import {
   findReferences,
   findDependencies,
@@ -181,16 +181,16 @@ describe('graph queries', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/query/__tests__/graph-queries.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/query/__tests__/graph-queries.test.ts`
 Expected: FAIL
 
 **Step 3: Implement graph-queries.ts**
 
 ```typescript
 // packages/analyzer/src/query/graph-queries.ts
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
-import type { NodeType, EdgeType } from '@contextualizer/core';
-import { GraphLevel } from '@contextualizer/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
+import type { NodeType, EdgeType } from '@sniffo/core';
+import { GraphLevel } from '@sniffo/core';
 
 export interface ReferenceResult {
   source: StoredNode;
@@ -356,7 +356,7 @@ export type { ReferenceResult, DependencyResult, DependentResult } from './query
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/query/__tests__/graph-queries.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/query/__tests__/graph-queries.test.ts`
 Expected: All 8 tests PASS
 
 **Step 6: Commit**
@@ -368,7 +368,7 @@ git commit -m "feat: add graph query helpers (search, references, dependencies, 
 
 ---
 
-## Task 2: `lpc init` command
+## Task 2: `sniffo init` command
 
 **Files:**
 - Create: `packages/cli/src/commands/init.ts`
@@ -386,7 +386,7 @@ import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
 import { runInit } from '../commands/init.js';
 
-describe('lpc init', () => {
+describe('sniffo init', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -398,14 +398,14 @@ describe('lpc init', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('creates .contextualizer directory', async () => {
+  it('creates .sniffo directory', async () => {
     await runInit(tempDir);
-    expect(existsSync(join(tempDir, '.contextualizer'))).toBe(true);
+    expect(existsSync(join(tempDir, '.sniffo'))).toBe(true);
   });
 
   it('creates config.json with default settings', async () => {
     await runInit(tempDir);
-    const configPath = join(tempDir, '.contextualizer', 'config.json');
+    const configPath = join(tempDir, '.sniffo', 'config.json');
     expect(existsSync(configPath)).toBe(true);
 
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -419,7 +419,7 @@ describe('lpc init', () => {
     const hookPath = join(tempDir, '.git', 'hooks', 'pre-commit');
     expect(existsSync(hookPath)).toBe(true);
     const content = readFileSync(hookPath, 'utf-8');
-    expect(content).toContain('contextualizer');
+    expect(content).toContain('sniffo');
   });
 
   it('skips hook installation with noHooks option', async () => {
@@ -431,7 +431,7 @@ describe('lpc init', () => {
   it('is idempotent (can run twice safely)', async () => {
     await runInit(tempDir);
     await runInit(tempDir);
-    const configPath = join(tempDir, '.contextualizer', 'config.json');
+    const configPath = join(tempDir, '.sniffo', 'config.json');
     expect(existsSync(configPath)).toBe(true);
   });
 });
@@ -466,7 +466,7 @@ const DEFAULT_CONFIG = {
 };
 
 export async function runInit(projectDir: string, options: InitOptions = {}): Promise<void> {
-  const ctxDir = join(projectDir, '.contextualizer');
+  const ctxDir = join(projectDir, '.sniffo');
   mkdirSync(ctxDir, { recursive: true });
 
   // Write config.json if it doesn't exist
@@ -486,7 +486,7 @@ export async function runInit(projectDir: string, options: InitOptions = {}): Pr
 
   // Append to .gitignore if it exists
   const gitignorePath = join(projectDir, '.gitignore');
-  const entries = ['.contextualizer/graph.duckdb', '.contextualizer/models/'];
+  const entries = ['.sniffo/graph.duckdb', '.sniffo/models/'];
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, 'utf-8');
     const toAdd = entries.filter(e => !content.includes(e));
@@ -503,14 +503,14 @@ Add `init` command with `--no-hooks` flag.
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/cli test -- --reporter verbose src/__tests__/init.test.ts`
+Run: `pnpm --filter @sniffo/cli test -- --reporter verbose src/__tests__/init.test.ts`
 Expected: All 5 tests PASS
 
 **Step 5: Commit**
 
 ```bash
 git add packages/cli/src/commands/init.ts packages/cli/src/__tests__/init.test.ts packages/cli/src/cli.ts
-git commit -m "feat: add lpc init command with config generation and hook setup"
+git commit -m "feat: add sniffo init command with config generation and hook setup"
 ```
 
 ---
@@ -528,12 +528,12 @@ git commit -m "feat: add lpc init command with config generation and hook setup"
 
 ```json
 {
-  "name": "@contextualizer/mcp-server",
+  "name": "@sniffo/mcp-server",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "bin": {
-    "contextualizer-mcp": "dist/index.js"
+    "sniffo-mcp": "dist/index.js"
   },
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
@@ -544,9 +544,9 @@ git commit -m "feat: add lpc init command with config generation and hook setup"
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.24.0"
   }
@@ -561,11 +561,11 @@ git commit -m "feat: add lpc init command with config generation and hook setup"
 // packages/mcp-server/src/server.ts
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import type { GraphStore } from '@contextualizer/storage';
+import type { GraphStore } from '@sniffo/storage';
 
 export function createMcpServer(store: GraphStore): McpServer {
   const server = new McpServer({
-    name: 'contextualizer',
+    name: 'sniffo',
     version: '0.0.1',
   });
 
@@ -584,11 +584,11 @@ export async function startStdioServer(store: GraphStore): Promise<void> {
 ```typescript
 #!/usr/bin/env node
 import { join } from 'node:path';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { startStdioServer } from './server.js';
 
 const projectDir = process.argv[2] || process.cwd();
-const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
 
 const store = new DuckDBGraphStore(dbPath);
 await store.initialize();
@@ -597,13 +597,13 @@ await startStdioServer(store);
 
 **Step 5: Install dependencies and build**
 
-Run: `pnpm install && pnpm --filter @contextualizer/mcp-server build`
+Run: `pnpm install && pnpm --filter @sniffo/mcp-server build`
 
 **Step 6: Commit**
 
 ```bash
 git add packages/mcp-server/
-git commit -m "feat: scaffold @contextualizer/mcp-server package"
+git commit -m "feat: scaffold @sniffo/mcp-server package"
 ```
 
 ---
@@ -627,7 +627,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { createMcpServer } from '../server.js';
 
 describe('MCP tools', () => {
@@ -637,7 +637,7 @@ describe('MCP tools', () => {
   beforeEach(async () => {
     tempDir = mkdtempSync(join(tmpdir(), 'ctx-mcp-'));
     mkdirSync(join(tempDir, 'src'), { recursive: true });
-    mkdirSync(join(tempDir, '.contextualizer'), { recursive: true });
+    mkdirSync(join(tempDir, '.sniffo'), { recursive: true });
     writeFileSync(join(tempDir, 'src', 'UserService.php'), `<?php
 namespace App\\Service;
 use App\\Repository\\UserRepository;
@@ -699,7 +699,7 @@ Each tool module exports a `register(server, store, projectDir)` function that r
 
 ```typescript
 export function createMcpServer(store: GraphStore, projectDir: string): McpServer {
-  const server = new McpServer({ name: 'contextualizer', version: '0.0.1' });
+  const server = new McpServer({ name: 'sniffo', version: '0.0.1' });
   registerAnalyzeTools(server, store, projectDir);
   registerSearchTools(server, store);
   registerReferenceTools(server, store);
@@ -711,7 +711,7 @@ export function createMcpServer(store: GraphStore, projectDir: string): McpServe
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/mcp-server test`
+Run: `pnpm --filter @sniffo/mcp-server test`
 Expected: All tests PASS
 
 **Step 5: Commit**
@@ -742,7 +742,7 @@ git commit -m "feat: implement MCP tools (analyze, search, references, freshness
 
 ```json
 {
-  "name": "@contextualizer/web-server",
+  "name": "@sniffo/web-server",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -755,9 +755,9 @@ git commit -m "feat: implement MCP tools (analyze, search, references, freshness
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "fastify": "^5.2.0",
     "@fastify/cors": "^11.0.0"
   }
@@ -770,7 +770,7 @@ git commit -m "feat: implement MCP tools (analyze, search, references, freshness
 // packages/web-server/src/server.ts
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import type { GraphStore } from '@contextualizer/storage';
+import type { GraphStore } from '@sniffo/storage';
 import { registerGraphRoutes } from './routes/graph.js';
 import { registerSearchRoutes } from './routes/search.js';
 import { registerNodeRoutes } from './routes/node.js';
@@ -821,8 +821,8 @@ export async function startServer(options: ServerOptions) {
 ```typescript
 // packages/web-server/src/__tests__/server.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, createNodeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, createNodeId } from '@sniffo/core';
 import { createServer } from '../server.js';
 
 describe('HTTP API', () => {
@@ -923,7 +923,7 @@ describe('HTTP API', () => {
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/web-server test`
+Run: `pnpm --filter @sniffo/web-server test`
 Expected: All 5 tests PASS
 
 **Step 6: Commit**
@@ -935,7 +935,7 @@ git commit -m "feat: add Fastify HTTP API server with graph, search, node, statu
 
 ---
 
-## Task 6: `lpc serve` command
+## Task 6: `sniffo serve` command
 
 **Files:**
 - Create: `packages/cli/src/commands/serve.ts`
@@ -946,11 +946,11 @@ git commit -m "feat: add Fastify HTTP API server with graph, search, node, statu
 ```typescript
 // packages/cli/src/commands/serve.ts
 import { join } from 'node:path';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 
 export async function runServe(projectDir: string, options: { port?: number; host?: string } = {}): Promise<void> {
-  const { startServer } = await import('@contextualizer/web-server');
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const { startServer } = await import('@sniffo/web-server');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 
@@ -964,7 +964,7 @@ export async function runServe(projectDir: string, options: { port?: number; hos
 
 **Step 2: Add dependency on web-server**
 
-Add `"@contextualizer/web-server": "workspace:*"` to cli package.json dependencies.
+Add `"@sniffo/web-server": "workspace:*"` to cli package.json dependencies.
 
 **Step 3: Register in cli.ts**
 
@@ -990,7 +990,7 @@ Expected: Clean build
 
 ```bash
 git add packages/cli/ pnpm-lock.yaml
-git commit -m "feat: add lpc serve command for HTTP API server"
+git commit -m "feat: add sniffo serve command for HTTP API server"
 ```
 
 ---
@@ -1021,11 +1021,11 @@ git commit -m "chore: phase 4 cleanup, all packages build and test green"
 | Task | What | Tests |
 |------|------|-------|
 | 1 | Graph query helpers (search, refs, deps) | 8 tests |
-| 2 | `lpc init` command | 5 tests |
+| 2 | `sniffo init` command | 5 tests |
 | 3 | MCP server package scaffold | 0 (scaffold) |
 | 4 | MCP tools (analyze, search, refs, freshness, refresh) | ~2 tests |
 | 5 | Fastify HTTP API server | 5 tests |
-| 6 | `lpc serve` command | 0 (integration) |
+| 6 | `sniffo serve` command | 0 (integration) |
 | 7 | Final cleanup | 0 (verification) |
 
 **Total new tests: ~20**
@@ -1035,7 +1035,7 @@ git commit -m "chore: phase 4 cleanup, all packages build and test green"
 - [x] All CLI commands work end-to-end (init, analyze, update, status, serve, install-hook)
 - [x] Claude Code can call MCP tools (analyze_project, search_symbols, find_references, find_dependencies, find_dependents, get_freshness, refresh)
 - [x] HTTP API serves graph data for web UI consumption
-- [x] `lpc init && lpc analyze && lpc status` works as onboarding flow
+- [x] `sniffo init && sniffo analyze && sniffo status` works as onboarding flow
 
 **Deferred to future phase:**
 - Vector embeddings (transformers.js + all-MiniLM-L6-v2)

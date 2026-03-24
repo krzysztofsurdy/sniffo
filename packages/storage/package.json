@@ -1,5 +1,5 @@
 {
-  "name": "@contextualizer/storage",
+  "name": "@sniffo/storage",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
+    "@sniffo/core": "workspace:*",
     "duckdb-async": "^1.1.0"
   }
 }

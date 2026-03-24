@@ -1,6 +1,6 @@
 
 
-# llmProjectContextualizer -- System Design Document
+# llmProjectSniffo -- System Design Document
 
 **Version:** 1.0.0
 **Date:** 2026-03-22
@@ -83,7 +83,7 @@
 |  |  (Graph)         |  |  (Embeddings)    |  |  (JSON)        | |
 |  +------------------+  +------------------+  +-----------------+ |
 |                                                                  |
-|  All stored in:  <target-project>/.contextualizer/               |
+|  All stored in:  <target-project>/.sniffo/               |
 +------------------------------------------------------------------+
               ^
               |
@@ -143,7 +143,7 @@ Source Files
 ### Monorepo Layout
 
 ```
-llmProjectContextualizer/
+llmProjectSniffo/
 ├── package.json                    # Workspace root
 ├── tsconfig.base.json              # Shared TS config
 ├── turbo.json                      # Turborepo pipeline config
@@ -151,7 +151,7 @@ llmProjectContextualizer/
 │   └── workflows/
 │       └── ci.yml
 ├── packages/
-│   ├── core/                       # @contextualizer/core
+│   ├── core/                       # @sniffo/core
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   └── src/
@@ -198,7 +198,7 @@ llmProjectContextualizer/
 │   │           ├── analysis.ts
 │   │           └── config.ts
 │   │
-│   ├── mcp-server/                 # @contextualizer/mcp-server
+│   ├── mcp-server/                 # @sniffo/mcp-server
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   └── src/
@@ -212,7 +212,7 @@ llmProjectContextualizer/
 │   │           ├── explain-relationship.ts
 │   │           └── get-staleness-report.ts
 │   │
-│   ├── web-ui/                     # @contextualizer/web-ui
+│   ├── web-ui/                     # @sniffo/web-ui
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   ├── vite.config.ts
@@ -239,7 +239,7 @@ llmProjectContextualizer/
 │   │       └── types/
 │   │           └── index.ts
 │   │
-│   ├── web-server/                 # @contextualizer/web-server
+│   ├── web-server/                 # @sniffo/web-server
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   └── src/
@@ -254,13 +254,13 @@ llmProjectContextualizer/
 │   │       └── ws/
 │   │           └── graph-updates.ts # WebSocket for live updates
 │   │
-│   └── cli/                        # @contextualizer/cli
+│   └── cli/                        # @sniffo/cli
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── src/
 │           ├── index.ts            # Entry point, bin
 │           ├── commands/
-│           │   ├── init.ts         # Initialize .contextualizer/
+│           │   ├── init.ts         # Initialize .sniffo/
 │           │   ├── analyze.ts      # Run full/incremental analysis
 │           │   ├── serve.ts        # Start web server
 │           │   ├── query.ts        # CLI graph queries
@@ -283,26 +283,26 @@ llmProjectContextualizer/
 ### Package Dependencies
 
 ```
-@contextualizer/cli
-  ├── @contextualizer/core
-  ├── @contextualizer/web-server
+@sniffo/cli
+  ├── @sniffo/core
+  ├── @sniffo/web-server
   └── commander
 
-@contextualizer/mcp-server
-  └── @contextualizer/core
+@sniffo/mcp-server
+  └── @sniffo/core
       └── @modelcontextprotocol/sdk
 
-@contextualizer/web-server
-  ├── @contextualizer/core
+@sniffo/web-server
+  ├── @sniffo/core
   └── fastify
 
-@contextualizer/web-ui
+@sniffo/web-ui
   ├── sigma
   ├── graphology
   ├── react
   └── (no dependency on core -- communicates via HTTP/WS)
 
-@contextualizer/core
+@sniffo/core
   ├── duckdb (duckdb-async)
   ├── better-sqlite3 + sqlite-vec
   ├── web-tree-sitter
@@ -313,7 +313,7 @@ llmProjectContextualizer/
 
 ```json
 {
-  "name": "llm-project-contextualizer",
+  "name": "llm-project-sniffo",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -563,7 +563,7 @@ CREATE UNIQUE INDEX idx_edges_unique ON edges(source, target, type);
 -- DuckPGQ Property Graph Definition
 -- ============================================================
 
-CREATE PROPERTY GRAPH contextualizer_graph
+CREATE PROPERTY GRAPH sniffo_graph
     VERTEX TABLES (
         nodes PROPERTIES (id, type, level, qualified_name, short_name, file_path, is_stale)
     )
@@ -608,7 +608,7 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
 
 ```sql
 -- Find all classes that depend on a given class (1-hop)
-FROM GRAPH_TABLE(contextualizer_graph
+FROM GRAPH_TABLE(sniffo_graph
     MATCH (a:nodes)-[e:edges]->(b:nodes)
     WHERE b.qualified_name = 'App\Service\UserService'
       AND e.type IN ('DEPENDS_ON', 'IMPORTS', 'CALLS', 'INSTANTIATES')
@@ -616,7 +616,7 @@ FROM GRAPH_TABLE(contextualizer_graph
 );
 
 -- Shortest path between two components
-FROM GRAPH_TABLE(contextualizer_graph
+FROM GRAPH_TABLE(sniffo_graph
     MATCH p = SHORTEST 1 TO 5 (a:nodes)-[e:edges]->(b:nodes)
     WHERE a.qualified_name = 'App\Controller\UserController'
       AND b.qualified_name = 'App\Repository\UserRepository'
@@ -624,7 +624,7 @@ FROM GRAPH_TABLE(contextualizer_graph
 );
 
 -- Find all stale nodes and their immediate dependents
-FROM GRAPH_TABLE(contextualizer_graph
+FROM GRAPH_TABLE(sniffo_graph
     MATCH (stale:nodes)<-[e:edges]-(dependent:nodes)
     WHERE stale.is_stale = true
     COLUMNS (stale.qualified_name AS stale_node,
@@ -692,7 +692,7 @@ type SupportedLanguage = 'php' | 'typescript' | 'javascript' | 'python';
 ```
 
 **Algorithm:**
-1. Read `.contextualizer/config.json` for include/exclude patterns. Fall back to language-specific defaults.
+1. Read `.sniffo/config.json` for include/exclude patterns. Fall back to language-specific defaults.
 2. Walk the project tree using `fast-glob`, respecting `.gitignore` plus exclude patterns.
 3. Classify each file by extension to a `SupportedLanguage`.
 4. Return sorted file list.
@@ -976,7 +976,7 @@ function cascadeInvalidate(changedNodeIds: string[]): InvalidationResult {
         for each nodeId in queue:
             // Find nodes that DEPEND ON this node (reverse edges)
             dependents = graphQuery("""
-                FROM GRAPH_TABLE(contextualizer_graph
+                FROM GRAPH_TABLE(sniffo_graph
                     MATCH (dep:nodes)-[e:edges]->(target:nodes)
                     WHERE target.id = ?
                       AND e.type IN ('EXTENDS', 'IMPLEMENTS', 'USES_TRAIT',
@@ -1021,16 +1021,16 @@ if [ -z "$STAGED_FILES" ]; then
     exit 0
 fi
 
-# Check if contextualizer is initialized
-if [ ! -d ".contextualizer" ]; then
+# Check if sniffo is initialized
+if [ ! -d ".sniffo" ]; then
     exit 0
 fi
 
 # Run incremental analysis on staged files only
-npx contextualizer analyze --incremental --files "$STAGED_FILES" --quiet
+npx sniffo analyze --incremental --files "$STAGED_FILES" --quiet
 
-# Stage any changes to .contextualizer/ so the graph is committed alongside code
-git add .contextualizer/
+# Stage any changes to .sniffo/ so the graph is committed alongside code
+git add .sniffo/
 
 exit 0
 ```
@@ -1048,8 +1048,8 @@ interface HookCommand {
 **Hook behavior:**
 1. Collects staged file paths from git.
 2. Runs incremental analysis (Passes 2-9 on changed files only).
-3. Re-stages `.contextualizer/` so the updated graph ships with the commit.
-4. Exits 0 always -- analysis failure should not block commits. Errors are logged to `.contextualizer/analysis.log`.
+3. Re-stages `.sniffo/` so the updated graph ships with the commit.
+4. Exits 0 always -- analysis failure should not block commits. Errors are logged to `.sniffo/analysis.log`.
 
 ---
 
@@ -1059,7 +1059,7 @@ interface HookCommand {
 
 ```
 <target-project>/
-└── .contextualizer/
+└── .sniffo/
     ├── config.json                 # Project configuration
     ├── graph.duckdb                # DuckDB database (graph + file hashes)
     ├── graph.duckdb.wal            # DuckDB WAL file
@@ -1206,18 +1206,18 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 const server = new McpServer({
-  name: 'contextualizer',
+  name: 'sniffo',
   version: '1.0.0',
 });
 ```
 
 ### Tool Definitions
 
-#### Tool 1: `contextualizer_analyze`
+#### Tool 1: `sniffo_analyze`
 
 ```typescript
 server.tool(
-  'contextualizer_analyze',
+  'sniffo_analyze',
   'Analyze a codebase to build or update the knowledge graph. Use "full" for first run or major changes, "incremental" for updates.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1243,11 +1243,11 @@ server.tool(
 );
 ```
 
-#### Tool 2: `contextualizer_query_graph`
+#### Tool 2: `sniffo_query_graph`
 
 ```typescript
 server.tool(
-  'contextualizer_query_graph',
+  'sniffo_query_graph',
   'Query the code knowledge graph. Returns nodes and their relationships at the specified level.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1268,11 +1268,11 @@ server.tool(
 );
 ```
 
-#### Tool 3: `contextualizer_search`
+#### Tool 3: `sniffo_search`
 
 ```typescript
 server.tool(
-  'contextualizer_search',
+  'sniffo_search',
   'Semantic search across the codebase using natural language. Finds relevant classes, interfaces, and functions by meaning.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1286,11 +1286,11 @@ server.tool(
 );
 ```
 
-#### Tool 4: `contextualizer_get_context`
+#### Tool 4: `sniffo_get_context`
 
 ```typescript
 server.tool(
-  'contextualizer_get_context',
+  'sniffo_get_context',
   'Get rich context for a code element: its dependencies, dependents, inheritance chain, and related components. Ideal for understanding a class before modifying it.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1317,11 +1317,11 @@ server.tool(
 );
 ```
 
-#### Tool 5: `contextualizer_explain_path`
+#### Tool 5: `sniffo_explain_path`
 
 ```typescript
 server.tool(
-  'contextualizer_explain_path',
+  'sniffo_explain_path',
   'Find and explain the relationship path between two code elements. Shows how they are connected through the dependency graph.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1341,11 +1341,11 @@ server.tool(
 );
 ```
 
-#### Tool 6: `contextualizer_staleness_report`
+#### Tool 6: `sniffo_staleness_report`
 
 ```typescript
 server.tool(
-  'contextualizer_staleness_report',
+  'sniffo_staleness_report',
   'Get a report of stale (potentially outdated) nodes in the graph. Use this to check if the graph is trustworthy before querying.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1364,11 +1364,11 @@ server.tool(
 );
 ```
 
-#### Tool 7: `contextualizer_impact_analysis`
+#### Tool 7: `sniffo_impact_analysis`
 
 ```typescript
 server.tool(
-  'contextualizer_impact_analysis',
+  'sniffo_impact_analysis',
   'Analyze the impact of changing a code element. Returns all directly and transitively affected components.',
   {
     projectPath: z.string().describe('Absolute path to the project root'),
@@ -1394,9 +1394,9 @@ Users register the server in their Claude Code config:
 ```json
 {
   "mcpServers": {
-    "contextualizer": {
+    "sniffo": {
       "command": "npx",
-      "args": ["@contextualizer/mcp-server"],
+      "args": ["@sniffo/mcp-server"],
       "env": {}
     }
   }
@@ -1410,7 +1410,7 @@ Users register the server in their Claude Code config:
 ### Architecture
 
 The CLI `serve` command starts a Fastify HTTP server that:
-1. Serves the pre-built React SPA from `@contextualizer/web-ui` dist.
+1. Serves the pre-built React SPA from `@sniffo/web-ui` dist.
 2. Exposes a REST API for graph data.
 3. Runs a WebSocket for live updates during analysis.
 
@@ -1793,7 +1793,7 @@ We need an embedded graph database that runs locally without an external server.
 **Rationale:**
 1. **Maturity:** DuckDB is production-grade with excellent Node.js bindings.
 2. **DuckPGQ:** Provides SQL/PGQ graph queries (CREATE PROPERTY GRAPH, MATCH patterns, shortest path) directly within DuckDB. This gives us true graph traversal without a separate database.
-3. **Single file:** The entire database is one `.duckdb` file, perfect for `.contextualizer/`.
+3. **Single file:** The entire database is one `.duckdb` file, perfect for `.sniffo/`.
 4. **Analytical capability:** DuckDB's columnar engine is fast for aggregation queries (edge rollups, statistics).
 5. **Fallback:** If DuckPGQ proves insufficient, the relational tables still work with recursive CTEs. We are not locked in.
 
@@ -1847,10 +1847,10 @@ The project has multiple distinct deliverables (MCP server, CLI, web UI, core li
 4. **Developer experience:** `turbo run dev --parallel` starts everything. No need to link packages manually.
 
 **Package boundaries:**
-- `@contextualizer/core` has zero UI or transport dependencies. It can be used as a library.
-- `@contextualizer/mcp-server` depends only on core + MCP SDK.
-- `@contextualizer/web-ui` has zero server-side dependencies. It communicates via HTTP/WS.
-- `@contextualizer/cli` is the user-facing entry point that composes everything.
+- `@sniffo/core` has zero UI or transport dependencies. It can be used as a library.
+- `@sniffo/mcp-server` depends only on core + MCP SDK.
+- `@sniffo/web-ui` has zero server-side dependencies. It communicates via HTTP/WS.
+- `@sniffo/cli` is the user-facing entry point that composes everything.
 
 **Build tool:** Turborepo for task orchestration. It handles dependency ordering, caching, and parallel builds across packages.
 
@@ -1861,7 +1861,7 @@ The project has multiple distinct deliverables (MCP server, CLI, web UI, core li
 **Status:** Accepted
 
 **Context:**
-We need to decide whether the contextualizer runs as an embedded library (in-process) or as a separate server that tools communicate with via IPC/HTTP.
+We need to decide whether the sniffo runs as an embedded library (in-process) or as a separate server that tools communicate with via IPC/HTTP.
 
 **Options Evaluated:**
 
@@ -1876,22 +1876,22 @@ We need to decide whether the contextualizer runs as an embedded library (in-pro
 **Rationale:**
 1. **MCP server runs embedded:** The MCP server communicates via stdio with Claude. The core engine runs in the same Node.js process. No network layer. This is the primary usage mode.
 2. **CLI runs embedded:** Same as MCP. Direct function calls to core.
-3. **Web server is a separate concern:** When the user runs `contextualizer serve`, it starts a Fastify HTTP server in the same process that also loads core. The web UI is a static SPA served by Fastify. This is acceptable because the web server is interactive (user actively viewing) and does not run concurrently with the MCP server.
+3. **Web server is a separate concern:** When the user runs `sniffo serve`, it starts a Fastify HTTP server in the same process that also loads core. The web UI is a static SPA served by Fastify. This is acceptable because the web server is interactive (user actively viewing) and does not run concurrently with the MCP server.
 4. **DuckDB concurrency:** DuckDB supports multiple readers but single writer. Since analysis (write) and querying (read) do not run truly in parallel within a single Node.js process (single-threaded event loop), this is not a problem. The pre-commit hook is a separate short-lived process, so it acquires a write lock briefly.
 
 **Deployment model:**
 ```
 Claude Code session:
-  claude -> stdio -> [MCP Server + Core (in-process)] -> .contextualizer/
+  claude -> stdio -> [MCP Server + Core (in-process)] -> .sniffo/
 
 User browsing:
-  browser -> HTTP -> [Web Server + Core (in-process)] -> .contextualizer/
+  browser -> HTTP -> [Web Server + Core (in-process)] -> .sniffo/
 
 Pre-commit hook:
-  git commit -> hook script -> [CLI + Core (short-lived process)] -> .contextualizer/
+  git commit -> hook script -> [CLI + Core (short-lived process)] -> .sniffo/
 ```
 
-Only one writer process accesses `.contextualizer/` at a time. The pre-commit hook runs synchronously (git waits for it), so there is no race with a running MCP server in a different terminal.
+Only one writer process accesses `.sniffo/` at a time. The pre-commit hook runs synchronously (git waits for it), so there is no race with a running MCP server in a different terminal.
 
 ---
 

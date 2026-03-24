@@ -1,6 +1,6 @@
 import { Database } from 'duckdb-async';
 import type { GraphStore, StoredNode, StoredEdge, AnalysisRun } from './graph-store.js';
-import type { NodeType, EdgeType, GraphLevel } from '@contextualizer/core';
+import type { NodeType, EdgeType, GraphLevel } from '@sniffo/core';
 
 export class DuckDBGraphStore implements GraphStore {
   private db: Database | null = null;

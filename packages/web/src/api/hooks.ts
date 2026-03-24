@@ -55,6 +55,13 @@ export function useCycles() {
   });
 }
 
+export function useWorkspaces() {
+  return useQuery({
+    queryKey: ['workspaces'],
+    queryFn: () => api.getWorkspaces(),
+  });
+}
+
 export function useRefresh() {
   const queryClient = useQueryClient();
   return useMutation({

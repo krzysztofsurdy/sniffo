@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ReferenceKind } from '@contextualizer/core';
-import type { ParsedReference, ImportStatement } from '@contextualizer/core';
+import { ReferenceKind } from '@sniffo/core';
+import type { ParsedReference, ImportStatement } from '@sniffo/core';
 import {
   resolveReferences,
   type SymbolIndex,

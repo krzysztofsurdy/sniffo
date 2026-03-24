@@ -1,5 +1,5 @@
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
-import { EdgeType } from '@contextualizer/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
+import { EdgeType } from '@sniffo/core';
 
 export interface ChildrenResult {
   parentId: string;

@@ -1,10 +1,10 @@
 {
-  "name": "@contextualizer/mcp-server",
+  "name": "@sniffo/mcp-server",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "bin": {
-    "contextualizer-mcp": "dist/index.js"
+    "sniffo-mcp": "dist/index.js"
   },
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
@@ -15,9 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.24.0"
   }

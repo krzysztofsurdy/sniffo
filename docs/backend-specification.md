@@ -1,4 +1,4 @@
-# Backend Technical Specification -- llmProjectContextualizer
+# Backend Technical Specification -- llmProjectSniffo
 
 Version: 1.0.0
 Date: 2026-03-22
@@ -385,7 +385,7 @@ PASS1_SCAN(rootDir, fileList?):
        candidates = fileList
      Else:
        candidates = recursively walk rootDir
-       Exclude: .git, vendor, node_modules, .contextualizer, patterns from .gitignore
+       Exclude: .git, vendor, node_modules, .sniffo, patterns from .gitignore
 
   2. For each candidate file:
        a. Check parserRegistry.getParserForFile(file) -- skip unsupported
@@ -677,10 +677,10 @@ FUNCTION buildEmbeddingText(node):
   RETURN parts.join(' | ')
 ```
 
-**Embedding storage**: Store embeddings as a separate table/column in KuzuDB or as a flat binary file (`.contextualizer/embeddings.bin`) with an index mapping nodeId to byte offset. KuzuDB does not natively support vector search, so a lightweight in-memory index is built at startup using brute-force cosine similarity. For codebases under 50k symbols, brute-force over 384-dimensional vectors is sub-100ms.
+**Embedding storage**: Store embeddings as a separate table/column in KuzuDB or as a flat binary file (`.sniffo/embeddings.bin`) with an index mapping nodeId to byte offset. KuzuDB does not natively support vector search, so a lightweight in-memory index is built at startup using brute-force cosine similarity. For codebases under 50k symbols, brute-force over 384-dimensional vectors is sub-100ms.
 
 **Performance considerations**:
-- First run of transformers.js downloads the model (~80MB). Cache in `.contextualizer/models/`.
+- First run of transformers.js downloads the model (~80MB). Cache in `.sniffo/models/`.
 - Embedding 1000 texts at batch size 64 takes roughly 10-15 seconds on CPU.
 - Pre-commit hook uses `skipEmbeddings: true` to skip this pass entirely.
 
@@ -1259,7 +1259,7 @@ server.tool(
 
 ## 6. CLI Command Specs
 
-CLI built with Commander.js. Binary name: `contextualizer`.
+CLI built with Commander.js. Binary name: `sniffo`.
 
 ```typescript
 // src/cli/index.ts
@@ -1267,30 +1267,30 @@ CLI built with Commander.js. Binary name: `contextualizer`.
 import { Command } from 'commander';
 
 const program = new Command()
-  .name('contextualizer')
+  .name('sniffo')
   .description('Codebase knowledge graph analyzer')
   .version('0.1.0');
 ```
 
-### 6.1 contextualizer init
+### 6.1 sniffo init
 
 ```
-Usage: contextualizer init [options]
+Usage: sniffo init [options]
 
-Setup the contextualizer for a project.
+Setup the sniffo for a project.
 
 Options:
   --no-hooks    Skip git hook installation
-  --db-path     Custom path for the database (default: .contextualizer/)
+  --db-path     Custom path for the database (default: .sniffo/)
 
 Behavior:
-  1. Create .contextualizer/ directory in project root
-     .contextualizer/
+  1. Create .sniffo/ directory in project root
+     .sniffo/
        config.json        -- project configuration
        db/                -- KuzuDB database files
        embeddings/        -- embedding vectors
        models/            -- cached ML models
-  2. Create .contextualizer/config.json with defaults:
+  2. Create .sniffo/config.json with defaults:
      {
        "version": 1,
        "rootDir": ".",
@@ -1309,17 +1309,17 @@ Behavior:
      }
   3. Install git pre-commit hook (unless --no-hooks):
      Append to .git/hooks/pre-commit:
-       contextualizer update --changed-only
+       sniffo update --changed-only
      Make hook executable.
-  4. Add .contextualizer/db/ and .contextualizer/embeddings/ to .gitignore
+  4. Add .sniffo/db/ and .sniffo/embeddings/ to .gitignore
      (config.json SHOULD be committed for team sharing)
   5. Print setup summary.
 ```
 
-### 6.2 contextualizer analyze
+### 6.2 sniffo analyze
 
 ```
-Usage: contextualizer analyze [options]
+Usage: sniffo analyze [options]
 
 Run full codebase analysis.
 
@@ -1329,7 +1329,7 @@ Options:
   --verbose            Show per-file progress
 
 Behavior:
-  1. Load config from .contextualizer/config.json
+  1. Load config from .sniffo/config.json
   2. Initialize parser registry (PHP parser)
   3. Initialize KuzuDB connection
   4. Run full 5-pass analysis pipeline
@@ -1345,10 +1345,10 @@ Output example:
   Duration: 12.4s
 ```
 
-### 6.3 contextualizer update
+### 6.3 sniffo update
 
 ```
-Usage: contextualizer update [options]
+Usage: sniffo update [options]
 
 Incremental update of the knowledge graph.
 
@@ -1364,7 +1364,7 @@ Behavior:
     2. Filter to supported file extensions
     3. Run incremental update pipeline
     4. Exit 0 always (analysis failure must not block commits)
-       Log errors to .contextualizer/update.log
+       Log errors to .sniffo/update.log
 
   --files mode:
     1. Validate provided file paths exist
@@ -1375,10 +1375,10 @@ Behavior:
     2. Run incremental update
 ```
 
-### 6.4 contextualizer serve
+### 6.4 sniffo serve
 
 ```
-Usage: contextualizer serve [options]
+Usage: sniffo serve [options]
 
 Start the HTTP API server for the web UI.
 
@@ -1394,14 +1394,14 @@ Behavior:
   3. Start Fastify HTTP server with API routes
   4. Start MCP server on stdio (unless --no-mcp)
   5. Serve static web UI files from bundled dist/
-  6. Print: "Contextualizer running at http://127.0.0.1:3100"
+  6. Print: "Sniffo running at http://127.0.0.1:3100"
   7. Handle SIGINT/SIGTERM for graceful shutdown
 ```
 
-### 6.5 contextualizer status
+### 6.5 sniffo status
 
 ```
-Usage: contextualizer status [options]
+Usage: sniffo status [options]
 
 Show freshness report.
 
@@ -1426,10 +1426,10 @@ Behavior:
     App\Entity (8 stale edges)
 ```
 
-### 6.6 contextualizer query
+### 6.6 sniffo query
 
 ```
-Usage: contextualizer query <cypher> [options]
+Usage: sniffo query <cypher> [options]
 
 Execute a Cypher query against the knowledge graph.
 
@@ -1443,7 +1443,7 @@ Behavior:
   3. Format and print results
 
 Example:
-  contextualizer query "MATCH (c:Class)-[:EXTENDS]->(p:Class) RETURN c.name, p.name LIMIT 10"
+  sniffo query "MATCH (c:Class)-[:EXTENDS]->(p:Class) RETURN c.name, p.name LIMIT 10"
 ```
 
 ---
@@ -1623,7 +1623,7 @@ async function parseWithGuardrails(
 
 import { writeFileSync, unlinkSync, existsSync, readFileSync } from 'node:fs';
 
-const LOCK_FILE = '.contextualizer/analysis.lock';
+const LOCK_FILE = '.sniffo/analysis.lock';
 
 interface LockInfo {
   pid: number;
@@ -1666,8 +1666,8 @@ function releaseLock(): void {
 ```
 
 **Behavior when lock is held**:
-- `contextualizer analyze`: Print "Analysis already running (PID {pid}, started at {time}). Use --force to override." Exit code 3.
-- `contextualizer update --changed-only` (pre-commit hook): Log to `.contextualizer/update.log` and exit 0. Never block a commit.
+- `sniffo analyze`: Print "Analysis already running (PID {pid}, started at {time}). Use --force to override." Exit code 3.
+- `sniffo update --changed-only` (pre-commit hook): Log to `.sniffo/update.log` and exit 0. Never block a commit.
 - `POST /api/refresh`: Return `{ status: 'already_running' }` with 409 Conflict.
 - KuzuDB read queries (graph exploration, search) are NOT blocked. KuzuDB supports concurrent read access.
 
@@ -1738,10 +1738,10 @@ async function readSourceFile(filePath: string): Promise<string> {
 If the KuzuDB database becomes corrupted (crash during write, disk full):
 
 ```
-contextualizer analyze --rebuild
+sniffo analyze --rebuild
 ```
 
-This drops all tables, recreates the schema, and runs a full analysis from scratch. The `.contextualizer/db/` directory can also be safely deleted and `analyze` re-run.
+This drops all tables, recreates the schema, and runs a full analysis from scratch. The `.sniffo/db/` directory can also be safely deleted and `analyze` re-run.
 
 ---
 
@@ -1969,7 +1969,7 @@ CREATE REL TABLE INJECTS (FROM Class TO Class, FROM Class TO Interface, confiden
 ## Appendix C: Directory Structure
 
 ```
-llmProjectContextualizer/
+llmProjectSniffo/
   src/
     cli/
       index.ts              -- Commander.js entry point

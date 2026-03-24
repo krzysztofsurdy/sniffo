@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f .sniffo/graph.duckdb || echo '[sniffo] No analysis database found. Use /sniffo:analyze to scan this project.'"
+          }
+        ]
+      }
+    ]
+  }
+}

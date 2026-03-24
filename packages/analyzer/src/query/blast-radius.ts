@@ -1,4 +1,4 @@
-import type { GraphStore, StoredEdge } from '@contextualizer/storage';
+import type { GraphStore, StoredEdge } from '@sniffo/storage';
 
 export interface BlastRadiusNode {
   id: string;

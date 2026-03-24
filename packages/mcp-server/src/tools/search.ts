@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { searchSymbols } from '@contextualizer/analyzer';
-import type { NodeType } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { searchSymbols } from '@sniffo/analyzer';
+import type { NodeType } from '@sniffo/core';
 
 export function registerSearchTool(server: McpServer, store: GraphStore): void {
   server.tool(

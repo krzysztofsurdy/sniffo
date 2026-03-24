@@ -36,8 +36,8 @@
 ```typescript
 // packages/analyzer/src/query/__tests__/children-query.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { findChildren } from '../children-query.js';
 
 describe('findChildren', () => {
@@ -127,8 +127,8 @@ describe('findChildren', () => {
 
 ```typescript
 // packages/analyzer/src/query/children-query.ts
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
-import { EdgeType } from '@contextualizer/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
+import { EdgeType } from '@sniffo/core';
 
 export interface ChildrenResult {
   parentId: string;
@@ -173,8 +173,8 @@ export async function findChildren(store: GraphStore, parentId: string): Promise
 ```typescript
 // packages/analyzer/src/query/__tests__/blast-radius.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { computeBlastRadius } from '../blast-radius.js';
 
 describe('computeBlastRadius', () => {
@@ -252,7 +252,7 @@ describe('computeBlastRadius', () => {
 
 ```typescript
 // packages/analyzer/src/query/blast-radius.ts
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
 
 export interface BlastRadiusNode {
   id: string;
@@ -319,8 +319,8 @@ export async function computeBlastRadius(
 ```typescript
 // packages/analyzer/src/query/__tests__/cycle-detector.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { detectCycles } from '../cycle-detector.js';
 
 describe('detectCycles', () => {
@@ -393,8 +393,8 @@ describe('detectCycles', () => {
 
 ```typescript
 // packages/analyzer/src/query/cycle-detector.ts
-import type { GraphStore } from '@contextualizer/storage';
-import { GraphLevel, EdgeType } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { GraphLevel, EdgeType } from '@sniffo/core';
 
 const STRUCTURAL_TYPES = new Set([
   EdgeType.EXTENDS, EdgeType.IMPLEMENTS, EdgeType.USES_TRAIT,
@@ -477,8 +477,8 @@ export { detectCycles } from './query/cycle-detector.js';
 Create `packages/web-server/src/routes/children.ts`:
 ```typescript
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { findChildren } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { findChildren } from '@sniffo/analyzer';
 
 export function registerChildrenRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get<{ Params: { id: string } }>('/api/node/:id/children', async (request, reply) => {
@@ -491,8 +491,8 @@ export function registerChildrenRoutes(app: FastifyInstance, store: GraphStore):
 Create `packages/web-server/src/routes/blast-radius.ts`:
 ```typescript
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { computeBlastRadius } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { computeBlastRadius } from '@sniffo/analyzer';
 
 export function registerBlastRadiusRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get<{ Params: { id: string }; Querystring: { depth?: string } }>('/api/blast-radius/:id', async (request) => {
@@ -506,8 +506,8 @@ export function registerBlastRadiusRoutes(app: FastifyInstance, store: GraphStor
 Create `packages/web-server/src/routes/cycles.ts`:
 ```typescript
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { detectCycles } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { detectCycles } from '@sniffo/analyzer';
 
 export function registerCyclesRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get('/api/cycles', async () => {
@@ -524,8 +524,8 @@ Register all 3 routes in `packages/web-server/src/server.ts` (add imports + call
 ```typescript
 // packages/web-server/src/__tests__/advanced-routes.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { createServer } from '../server.js';
 
 describe('advanced HTTP routes', () => {
@@ -596,8 +596,8 @@ describe('advanced HTTP routes', () => {
 
 ```bash
 cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
-pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/query/__tests__/
-pnpm --filter @contextualizer/web-server test -- --reporter verbose
+pnpm --filter @sniffo/analyzer test -- --reporter verbose src/query/__tests__/
+pnpm --filter @sniffo/web-server test -- --reporter verbose
 ```
 
 **Step 11: Commit**
@@ -751,7 +751,7 @@ export type { NavigationState, Breadcrumb } from './navigation-store';
 **Step 6: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 7: Commit**
@@ -831,7 +831,7 @@ Place `<LevelNavigator />` as an overlay inside the graph canvas div.
 **Step 4: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 5: Commit**
@@ -913,7 +913,7 @@ In GraphEvents, listen for keydown 'b' to toggle blast radius.
 **Step 4: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 5: Commit**
@@ -974,7 +974,7 @@ const freshnessColor = node.isStale ? '#F85149' : daysSince < 7 ? '#2EA043' : da
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**
@@ -1096,7 +1096,7 @@ export default function KeyboardShortcuts() {
 **Step 5: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 6: Commit**
@@ -1140,7 +1140,7 @@ export default function ExportMenu() {
     canvas.toBlob((blob) => {
       if (blob) {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
-        downloadBlob(blob, `contextualizer-${ts}.png`);
+        downloadBlob(blob, `sniffo-${ts}.png`);
       }
     });
     setOpen(false);
@@ -1152,7 +1152,7 @@ export default function ExportMenu() {
     const edges = graph.mapEdges((id, attrs, source, target) => ({ id, source, target, ...attrs }));
     const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadBlob(blob, `contextualizer-${ts}.json`);
+    downloadBlob(blob, `sniffo-${ts}.json`);
     setOpen(false);
   }
 
@@ -1184,7 +1184,7 @@ export default function ExportMenu() {
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**

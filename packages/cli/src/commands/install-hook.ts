@@ -1,16 +1,16 @@
 import { readFile, writeFile, mkdir, unlink, chmod, access, constants } from 'node:fs/promises';
 import { join } from 'node:path';
 
-const MARKER_START = '# --- contextualizer pre-commit hook start ---';
-const MARKER_END = '# --- contextualizer pre-commit hook end ---';
+const MARKER_START = '# --- sniffo pre-commit hook start ---';
+const MARKER_END = '# --- sniffo pre-commit hook end ---';
 const SHEBANG = '#!/bin/sh';
 
 const HOOK_CONTENT = `${MARKER_START}
 STAGED_PHP_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.php')
 if [ -n "$STAGED_PHP_FILES" ]; then
-  if command -v lpc &> /dev/null; then
-    echo "[contextualizer] Updating graph for staged PHP files..."
-    lpc update -d "$(git rev-parse --show-toplevel)" 2>/dev/null || true
+  if command -v sniffo &> /dev/null; then
+    echo "[sniffo] Updating graph for staged PHP files..."
+    sniffo update -d "$(git rev-parse --show-toplevel)" 2>/dev/null || true
   fi
 fi
 ${MARKER_END}`;

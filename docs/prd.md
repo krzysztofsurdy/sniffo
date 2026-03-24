@@ -1,8 +1,8 @@
-# Product Requirements Document: llmProjectContextualizer
+# Product Requirements Document: llmProjectSniffo
 
 | Field            | Value                                      |
 |------------------|--------------------------------------------|
-| **Product Name** | llmProjectContextualizer                   |
+| **Product Name** | llmProjectSniffo                   |
 | **Version**      | 1.0                                        |
 | **Author**       | Product Management                         |
 | **Date**         | 2026-03-22                                 |
@@ -31,7 +31,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 1. **Freshness over completeness** -- a partially analyzed but accurate graph is more valuable than a complete but stale one.
 2. **Local-first** -- all storage, embeddings, and processing happen on the developer's machine. No data leaves the project.
 3. **Incremental by default** -- every operation (parse, index, embed) works on deltas, not full rescans.
-4. **Minimal intrusion** -- the tool stores artifacts in `.contextualizer/` and registers one git hook. No other project files are modified.
+4. **Minimal intrusion** -- the tool stores artifacts in `.sniffo/` and registers one git hook. No other project files are modified.
 
 ---
 
@@ -83,7 +83,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 
 | REQ-ID  | Requirement                                                                                                  | Priority | Notes                                                                |
 |---------|--------------------------------------------------------------------------------------------------------------|----------|----------------------------------------------------------------------|
-| REQ-013 | Store all artifacts in `<project-root>/.contextualizer/` directory                                           | Must     | Add to `.gitignore` recommendation on init                           |
+| REQ-013 | Store all artifacts in `<project-root>/.sniffo/` directory                                           | Must     | Add to `.gitignore` recommendation on init                           |
 | REQ-014 | Use KuzuDB (v0.11.3) as embedded graph database for node and relationship storage                            | Must     | Archived but stable at v0.11.3; see RISK-001                        |
 | REQ-015 | Store vector embeddings in KuzuDB using its built-in vector index support                                    | Must     | Avoids separate vector store dependency                              |
 | REQ-016 | Graph schema must model C4 levels: `System`, `Container`, `Component`, `CodeEntity` node types               | Must     | Plus relationship types: `CONTAINS`, `DEPENDS_ON`, `CALLS`, `IMPLEMENTS`, `EXTENDS`, `USES_TRAIT`, `IMPORTS` |
@@ -98,8 +98,8 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 | REQ-020 | Register a git pre-commit hook that triggers incremental graph update on every commit                         | Must     | Hook script at `.git/hooks/pre-commit` or via `.husky/`              |
 | REQ-021 | Pre-commit hook must complete within 10 seconds for typical commits (1-20 changed files)                     | Must     | If exceeded, log warning but do not block commit                     |
 | REQ-022 | Pre-commit hook only processes staged files (`git diff --cached --name-only`)                                 | Must     | Avoid full rescan on every commit                                    |
-| REQ-023 | Provide CLI command `contextualizer refresh` for manual full rescan                                           | Must     | For initial setup and recovery from drift                            |
-| REQ-024 | Provide CLI command `contextualizer refresh --changed` for manual incremental update                          | Should   | Detects changed files via content hash comparison                    |
+| REQ-023 | Provide CLI command `sniffo refresh` for manual full rescan                                           | Must     | For initial setup and recovery from drift                            |
+| REQ-024 | Provide CLI command `sniffo refresh --changed` for manual incremental update                          | Should   | Detects changed files via content hash comparison                    |
 | REQ-025 | No auto-refresh from UI -- user must explicitly trigger refresh via UI button or CLI                          | Must     | No polling, no file watchers from the web UI                         |
 | REQ-026 | Display last global refresh timestamp prominently in UI header                                                | Must     | Format: "Last refreshed: 2026-03-22 14:30:05"                       |
 | REQ-027 | Every node in the graph visualization shows its `lastAnalyzedAt` timestamp on hover                          | Must     | Tooltip or info panel                                                |
@@ -153,20 +153,20 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 | REQ-060 | MCP Tool: `get_stale_nodes(limit?)` -- returns nodes whose content hash is outdated           | Must     | Helps Claude understand what might be inaccurate  |
 | REQ-061 | MCP Tool: `get_level(level, parent?)` -- returns all nodes at a C4 level, optionally within a parent | Must     | level: 1-4, parent: node name                     |
 | REQ-062 | MCP Tool: `refresh(scope?)` -- triggers incremental or full analysis                          | Should   | scope: "full" or "incremental" (default)          |
-| REQ-063 | MCP Resource: `contextualizer://graph/summary` -- exposes graph summary as MCP resource       | Should   | For Claude to read as context                     |
+| REQ-063 | MCP Resource: `sniffo://graph/summary` -- exposes graph summary as MCP resource       | Should   | For Claude to read as context                     |
 
 ### 3.7 CLI
 
 | REQ-ID  | Requirement                                                                                  | Priority | Notes                                             |
 |---------|----------------------------------------------------------------------------------------------|----------|---------------------------------------------------|
-| REQ-064 | CLI entry point: `contextualizer` (or `npx llm-project-contextualizer`)                      | Must     | Built with Commander.js                           |
-| REQ-065 | `contextualizer init` -- initializes `.contextualizer/` directory, registers pre-commit hook, runs first full analysis | Must     | Interactive: confirms hook registration            |
-| REQ-066 | `contextualizer refresh [--full]` -- runs incremental (default) or full analysis              | Must     |                                                   |
-| REQ-067 | `contextualizer serve [--port <port>]` -- starts web UI server                                | Must     | Default port: 3000                                |
-| REQ-068 | `contextualizer status` -- prints graph stats, last refresh time, stale node count            | Must     |                                                   |
-| REQ-069 | `contextualizer query <cypher>` -- runs raw Cypher query against the graph DB                  | Should   | For power users and debugging                     |
-| REQ-070 | `contextualizer hook install` / `contextualizer hook uninstall` -- manages pre-commit hook     | Must     | Idempotent: safe to run multiple times            |
-| REQ-071 | `contextualizer export [--level <1-4>] [--format json]` -- exports graph data                 | Should   |                                                   |
+| REQ-064 | CLI entry point: `sniffo` (or `npx llm-project-sniffo`)                      | Must     | Built with Commander.js                           |
+| REQ-065 | `sniffo init` -- initializes `.sniffo/` directory, registers pre-commit hook, runs first full analysis | Must     | Interactive: confirms hook registration            |
+| REQ-066 | `sniffo refresh [--full]` -- runs incremental (default) or full analysis              | Must     |                                                   |
+| REQ-067 | `sniffo serve [--port <port>]` -- starts web UI server                                | Must     | Default port: 3000                                |
+| REQ-068 | `sniffo status` -- prints graph stats, last refresh time, stale node count            | Must     |                                                   |
+| REQ-069 | `sniffo query <cypher>` -- runs raw Cypher query against the graph DB                  | Should   | For power users and debugging                     |
+| REQ-070 | `sniffo hook install` / `sniffo hook uninstall` -- manages pre-commit hook     | Must     | Idempotent: safe to run multiple times            |
+| REQ-071 | `sniffo export [--level <1-4>] [--format json]` -- exports graph data                 | Should   |                                                   |
 | REQ-072 | All CLI commands provide `--verbose` flag for debug output                                     | Should   |                                                   |
 
 ---
@@ -175,28 +175,28 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 
 ### US-001: Initial Setup
 
-**As a** developer cloning a PHP project, **I want to** initialize the contextualizer with a single command, **so that** I get a complete knowledge graph without manual configuration.
+**As a** developer cloning a PHP project, **I want to** initialize the sniffo with a single command, **so that** I get a complete knowledge graph without manual configuration.
 
 **Acceptance Criteria:**
-1. Running `contextualizer init` in a project root with PHP files creates `.contextualizer/` directory.
-2. The `.contextualizer/` directory contains: `graph.db/` (KuzuDB data), `config.json` (settings), `analysis.log` (last run log).
+1. Running `sniffo init` in a project root with PHP files creates `.sniffo/` directory.
+2. The `.sniffo/` directory contains: `graph.db/` (KuzuDB data), `config.json` (settings), `analysis.log` (last run log).
 3. A pre-commit hook is registered (user prompted to confirm).
 4. Full analysis completes and populates the graph.
-5. `contextualizer status` shows node/edge counts > 0.
-6. If `.contextualizer/` already exists, the command asks before overwriting.
+5. `sniffo status` shows node/edge counts > 0.
+6. If `.sniffo/` already exists, the command asks before overwriting.
 
 ### US-002: Automatic Graph Update on Commit
 
 **As a** developer committing code changes, **I want** the knowledge graph to automatically update for changed files, **so that** the graph stays accurate without manual intervention.
 
 **Acceptance Criteria:**
-1. After `git commit`, the pre-commit hook runs `contextualizer refresh --staged`.
+1. After `git commit`, the pre-commit hook runs `sniffo refresh --staged`.
 2. Only files in the staging area are re-analyzed.
 3. Changed nodes get updated `lastAnalyzedAt` timestamps.
 4. Nodes depending on changed files are marked `needsReverify`.
 5. The hook completes in under 10 seconds for 1-20 changed PHP files.
 6. If the hook exceeds 30 seconds, it logs a warning and exits successfully (does not block commit).
-7. If `contextualizer` is not installed, the hook exits silently with code 0.
+7. If `sniffo` is not installed, the hook exits silently with code 0.
 
 ### US-003: Multi-Level Graph Navigation
 
@@ -238,7 +238,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 **As a** developer using Claude Code, **I want** Claude to query the knowledge graph for structural information, **so that** Claude's responses are grounded in accurate project architecture.
 
 **Acceptance Criteria:**
-1. Running `contextualizer` as an MCP server (configured in `.claude/settings.json`) exposes all MCP tools.
+1. Running `sniffo` as an MCP server (configured in `.claude/settings.json`) exposes all MCP tools.
 2. Claude can call `get_dependencies("UserService", "outgoing", 3)` and receive a structured dependency tree.
 3. Claude can call `semantic_search("authentication logic")` and receive the top-10 most relevant code entities.
 4. Claude can call `get_stale_nodes()` and warn the user about potentially outdated information.
@@ -300,7 +300,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 | NFR-ID  | Requirement                                                                                   | Threshold                                       |
 |---------|-----------------------------------------------------------------------------------------------|--------------------------------------------------|
 | NFR-014 | Analysis failure on a single file must not abort the entire pipeline                           | Skip file, log error, continue                  |
-| NFR-015 | Corrupted graph database must be recoverable                                                   | `contextualizer refresh --full` rebuilds from scratch |
+| NFR-015 | Corrupted graph database must be recoverable                                                   | `sniffo refresh --full` rebuilds from scratch |
 | NFR-016 | Pre-commit hook must never block a commit                                                       | Exit code 0 on any error, log failure            |
 
 ### 5.4 Security
@@ -310,7 +310,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 | NFR-017 | No source code leaves the developer's machine                                                  | All processing local, no network calls           |
 | NFR-018 | Web UI binds to `localhost` only by default                                                    | Optional `--host` flag for network access        |
 | NFR-019 | No secrets/credentials should be indexed or stored in the graph                                 | Exclude `.env`, `*.pem`, `*.key` files by default |
-| NFR-020 | `.contextualizer/` should be added to `.gitignore`                                              | Suggested during `contextualizer init`           |
+| NFR-020 | `.sniffo/` should be added to `.gitignore`                                              | Suggested during `sniffo init`           |
 
 ### 5.5 Compatibility
 
@@ -342,7 +342,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 | Languages other than PHP                      | Architecture supports it (REQ-005), but only PHP parser ships in v1.0   |
 | Remote/cloud storage of graph data            | Local-first is a core principle; cloud sync is a future consideration   |
 | Real-time file watching                       | Explicitly excluded per user requirement (REQ-025); hook-based updates only |
-| Multi-project graphs                          | One `.contextualizer/` per project root; cross-project analysis not in scope |
+| Multi-project graphs                          | One `.sniffo/` per project root; cross-project analysis not in scope |
 | Git history analysis (blame, evolution)        | Future feature; v1.0 analyzes current state only                        |
 | Automatic PR/MR integration                    | No GitHub/GitLab API integration in v1.0                                |
 | Custom graph queries in the UI                 | CLI supports raw Cypher (REQ-069); UI gets predefined views only        |
@@ -356,12 +356,12 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 
 | Risk ID  | Risk                                                                                           | Likelihood | Impact | Mitigation                                                                                                  |
 |----------|------------------------------------------------------------------------------------------------|------------|--------|-------------------------------------------------------------------------------------------------------------|
-| RISK-001 | **KuzuDB archived (Oct 2025)**: No new releases or bug fixes. Storage format never stabilized. | High       | High   | Pin to v0.11.3 (last stable). Abstract DB layer behind `GraphStore` interface to enable future migration to DuckPGQ or a community fork (e.g., Vela-Engineering/kuzu). Include `contextualizer export` from day one for data portability. |
+| RISK-001 | **KuzuDB archived (Oct 2025)**: No new releases or bug fixes. Storage format never stabilized. | High       | High   | Pin to v0.11.3 (last stable). Abstract DB layer behind `GraphStore` interface to enable future migration to DuckPGQ or a community fork (e.g., Vela-Engineering/kuzu). Include `sniffo export` from day one for data portability. |
 | RISK-002 | **Tree-sitter PHP grammar gaps**: Certain PHP 8.3+ syntax may not be fully supported.          | Medium     | Medium | Validate against a corpus of modern PHP projects during development. Fall back to partial parsing -- a node with incomplete relationships is better than a missing node. Monitor `tree-sitter-php` releases. |
-| RISK-003 | **Embedding model size and load time**: `all-MiniLM-L6-v2` ONNX model is ~80MB, first load ~15s. | Medium     | Low    | Cache model in `.contextualizer/models/`. Lazy-load embeddings -- graph works without embeddings, semantic search just returns empty. Show progress indicator on first load. |
-| RISK-004 | **Pre-commit hook blocking developer workflow**: Slow analysis could frustrate developers.       | Medium     | High   | Hard timeout: 30 seconds max, then exit 0. Only analyze staged PHP files. Provide `contextualizer hook uninstall` escape hatch. Log performance metrics for optimization. |
+| RISK-003 | **Embedding model size and load time**: `all-MiniLM-L6-v2` ONNX model is ~80MB, first load ~15s. | Medium     | Low    | Cache model in `.sniffo/models/`. Lazy-load embeddings -- graph works without embeddings, semantic search just returns empty. Show progress indicator on first load. |
+| RISK-004 | **Pre-commit hook blocking developer workflow**: Slow analysis could frustrate developers.       | Medium     | High   | Hard timeout: 30 seconds max, then exit 0. Only analyze staged PHP files. Provide `sniffo hook uninstall` escape hatch. Log performance metrics for optimization. |
 | RISK-005 | **Graph becomes too large to render at lower C4 levels**: L4 view of a large module could have thousands of nodes. | Medium     | Medium | Implement pagination/virtualization at L4. Cap visible nodes at 2,000 with "show more" option. ForceAtlas2 handles large graphs well with WebGL, but UI controls (filter, search) become critical. |
-| RISK-006 | **Clustering accuracy**: Auto-detected module boundaries may not match developer's mental model. | Medium     | Medium | Use directory structure as primary signal (most reliable), namespace as secondary. Allow manual overrides via `.contextualizer/config.json` cluster mappings. Show cluster boundaries as suggestions, not facts. |
+| RISK-006 | **Clustering accuracy**: Auto-detected module boundaries may not match developer's mental model. | Medium     | Medium | Use directory structure as primary signal (most reliable), namespace as secondary. Allow manual overrides via `.sniffo/config.json` cluster mappings. Show cluster boundaries as suggestions, not facts. |
 | RISK-007 | **MCP protocol changes**: MCP is evolving rapidly; SDK breaking changes possible.               | Low        | Medium | Pin `@modelcontextprotocol/sdk` version. Monitor MCP changelog. Keep MCP layer thin -- business logic in service layer, MCP is just a transport adapter. |
 | RISK-008 | **Content hash false negatives**: Formatting-only changes (whitespace, comments) trigger re-analysis unnecessarily. | Low        | Low    | Hash the full file content (not AST). Accept some unnecessary re-analysis -- correctness over efficiency. Future optimization: AST-hash for smarter diffing. |
 
@@ -371,7 +371,7 @@ A developer tool that builds, maintains, and visualizes a living knowledge graph
 
 ```
 <project-root>/
-  .contextualizer/
+  .sniffo/
     config.json              # User configuration (excluded paths, port, cluster overrides)
     graph.db/                # KuzuDB database files
     models/                  # Cached ONNX model files
@@ -407,9 +407,9 @@ CREATE REL TABLE DEFINED_IN(FROM CodeEntity TO File);
 ```json
 {
   "mcpServers": {
-    "contextualizer": {
+    "sniffo": {
       "command": "npx",
-      "args": ["llm-project-contextualizer", "mcp"],
+      "args": ["llm-project-sniffo", "mcp"],
       "env": {
         "PROJECT_ROOT": "${workspaceFolder}"
       }

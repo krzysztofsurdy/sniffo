@@ -21,7 +21,7 @@ export default function ExportMenu() {
     canvas.toBlob((blob) => {
       if (blob) {
         const ts = new Date().toISOString().replace(/[:.]/g, '-');
-        downloadBlob(blob, `contextualizer-${ts}.png`);
+        downloadBlob(blob, `sniffo-${ts}.png`);
       }
     });
     setOpen(false);
@@ -33,7 +33,7 @@ export default function ExportMenu() {
     const edges = graph.mapEdges((id: string, attrs: Record<string, unknown>, source: string, target: string) => ({ id, source, target, ...attrs }));
     const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadBlob(blob, `contextualizer-${ts}.json`);
+    downloadBlob(blob, `sniffo-${ts}.json`);
     setOpen(false);
   }
 

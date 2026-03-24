@@ -1,4 +1,4 @@
-import type { LanguageParser } from '@contextualizer/core';
+import type { LanguageParser } from '@sniffo/core';
 
 export class ParserRegistry {
   private parsers: Map<string, LanguageParser> = new Map();

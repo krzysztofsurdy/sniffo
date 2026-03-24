@@ -1,5 +1,5 @@
-import { GraphLevel } from '@contextualizer/core';
-import type { GraphStore, AnalysisRun } from '@contextualizer/storage';
+import { GraphLevel } from '@sniffo/core';
+import type { GraphStore, AnalysisRun } from '@sniffo/storage';
 
 export interface StaleNodeInfo {
   id: string;

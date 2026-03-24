@@ -1,4 +1,4 @@
-# Test Strategy: llmProjectContextualizer
+# Test Strategy: llmProjectSniffo
 
 ## Guiding Principle
 

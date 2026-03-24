@@ -1,5 +1,5 @@
 {
-  "name": "@contextualizer/web-server",
+  "name": "@sniffo/web-server",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "fastify": "^5.2.0",
     "@fastify/cors": "^11.0.0",
     "@fastify/static": "^8.0.0"

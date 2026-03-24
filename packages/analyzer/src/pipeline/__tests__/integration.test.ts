@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
-import { GraphLevel, NodeType, EdgeType, createNodeId } from '@contextualizer/core';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId } from '@sniffo/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';

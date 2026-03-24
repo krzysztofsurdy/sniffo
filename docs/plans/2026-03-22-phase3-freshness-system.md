@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement cascade invalidation, incremental updates, staleness detection, a minimal CLI (`lpc update`, `lpc install-hook`), and a git pre-commit hook so the graph stays current automatically.
+**Goal:** Implement cascade invalidation, incremental updates, staleness detection, a minimal CLI (`sniffo update`, `sniffo install-hook`), and a git pre-commit hook so the graph stays current automatically.
 
-**Architecture:** New cascade invalidator in `@contextualizer/analyzer`. Extend `AnalysisPipeline` with incremental mode (accept file list). New `@contextualizer/cli` package with Commander.js. Pre-commit hook shell script + installer.
+**Architecture:** New cascade invalidator in `@sniffo/analyzer`. Extend `AnalysisPipeline` with incremental mode (accept file list). New `@sniffo/cli` package with Commander.js. Pre-commit hook shell script + installer.
 
 **Tech Stack:** Commander.js for CLI, existing DuckDB store, existing pipeline, shell script for git hook
 
@@ -31,8 +31,8 @@
 ```typescript
 // packages/analyzer/src/pipeline/__tests__/cascade-invalidator.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { cascadeInvalidation, type InvalidationResult } from '../cascade-invalidator.js';
 
 describe('cascadeInvalidation', () => {
@@ -184,15 +184,15 @@ describe('cascadeInvalidation', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/cascade-invalidator.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/cascade-invalidator.test.ts`
 Expected: FAIL -- cannot resolve `../cascade-invalidator.js`
 
 **Step 3: Implement cascade-invalidator.ts**
 
 ```typescript
 // packages/analyzer/src/pipeline/cascade-invalidator.ts
-import { EdgeType } from '@contextualizer/core';
-import type { GraphStore, StoredEdge } from '@contextualizer/storage';
+import { EdgeType } from '@sniffo/core';
+import type { GraphStore, StoredEdge } from '@sniffo/storage';
 
 const MAX_DEPTH = 2;
 const STRUCTURAL_EDGE_TYPES = new Set([EdgeType.EXTENDS, EdgeType.IMPLEMENTS, EdgeType.USES_TRAIT]);
@@ -273,7 +273,7 @@ export async function cascadeInvalidation(
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/cascade-invalidator.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/cascade-invalidator.test.ts`
 Expected: All 6 tests PASS
 
 **Step 5: Commit**
@@ -300,10 +300,10 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';
-import { NodeType, EdgeType } from '@contextualizer/core';
+import { NodeType, EdgeType } from '@sniffo/core';
 
 describe('Incremental Analysis', () => {
   let tempDir: string;
@@ -410,7 +410,7 @@ describe('Incremental Analysis', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/incremental-analysis.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/incremental-analysis.test.ts`
 Expected: FAIL -- `analyzeIncremental` does not exist
 
 **Step 3: Add `analyzeIncremental` to AnalysisPipeline**
@@ -487,12 +487,12 @@ Rather than duplicating the entire analyze method, refactor to share internals. 
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/incremental-analysis.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/incremental-analysis.test.ts`
 Expected: All 5 tests PASS
 
 **Step 5: Run all tests for regressions**
 
-Run: `pnpm --filter @contextualizer/analyzer test`
+Run: `pnpm --filter @sniffo/analyzer test`
 Expected: All tests PASS
 
 **Step 6: Commit**
@@ -515,8 +515,8 @@ git commit -m "feat: add incremental analysis with cascade invalidation"
 ```typescript
 // packages/analyzer/src/pipeline/__tests__/staleness-reporter.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, createNodeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, createNodeId } from '@sniffo/core';
 import { getStalenessReport, type StalenessReport } from '../staleness-reporter.js';
 
 describe('getStalenessReport', () => {
@@ -612,15 +612,15 @@ describe('getStalenessReport', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/staleness-reporter.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/staleness-reporter.test.ts`
 Expected: FAIL
 
 **Step 3: Implement staleness-reporter.ts**
 
 ```typescript
 // packages/analyzer/src/pipeline/staleness-reporter.ts
-import { GraphLevel } from '@contextualizer/core';
-import type { GraphStore, StoredNode, AnalysisRun } from '@contextualizer/storage';
+import { GraphLevel } from '@sniffo/core';
+import type { GraphStore, StoredNode, AnalysisRun } from '@sniffo/storage';
 
 export interface StaleNodeInfo {
   id: string;
@@ -673,7 +673,7 @@ export async function getStalenessReport(store: GraphStore): Promise<StalenessRe
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/staleness-reporter.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/staleness-reporter.test.ts`
 Expected: All 4 tests PASS
 
 **Step 5: Commit**
@@ -698,12 +698,12 @@ git commit -m "feat: add staleness report for querying stale nodes"
 
 ```json
 {
-  "name": "@contextualizer/cli",
+  "name": "@sniffo/cli",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "bin": {
-    "lpc": "dist/index.js"
+    "sniffo": "dist/index.js"
   },
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
@@ -714,9 +714,9 @@ git commit -m "feat: add staleness report for querying stale nodes"
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "commander": "^13.0.0"
   }
 }
@@ -772,8 +772,8 @@ export function createCli(): Command {
   const program = new Command();
 
   program
-    .name('lpc')
-    .description('llmProjectContextualizer -- Codebase Knowledge Graph Tool')
+    .name('sniffo')
+    .description('sniffo -- Codebase Knowledge Graph Tool')
     .version('0.0.1');
 
   return program;
@@ -782,19 +782,19 @@ export function createCli(): Command {
 
 **Step 6: Install dependencies and build**
 
-Run: `pnpm install && pnpm --filter @contextualizer/cli build`
+Run: `pnpm install && pnpm --filter @sniffo/cli build`
 Expected: Clean build
 
 **Step 7: Commit**
 
 ```bash
 git add packages/cli/
-git commit -m "feat: scaffold @contextualizer/cli package with Commander.js"
+git commit -m "feat: scaffold @sniffo/cli package with Commander.js"
 ```
 
 ---
 
-## Task 5: CLI `lpc analyze` and `lpc update` commands
+## Task 5: CLI `sniffo analyze` and `sniffo update` commands
 
 **Files:**
 - Create: `packages/cli/src/commands/analyze.ts`
@@ -828,12 +828,12 @@ describe('CLI commands', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('runAnalyze creates .contextualizer directory and DB', async () => {
+  it('runAnalyze creates .sniffo directory and DB', async () => {
     const result = await runAnalyze(tempDir);
     expect(result.filesAnalyzed).toBe(1);
 
     const { existsSync } = await import('node:fs');
-    expect(existsSync(join(tempDir, '.contextualizer'))).toBe(true);
+    expect(existsSync(join(tempDir, '.sniffo'))).toBe(true);
   });
 
   it('runUpdate only processes changed files', async () => {
@@ -869,12 +869,12 @@ describe('CLI commands', () => {
 ```typescript
 import { mkdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
-import { AnalysisPipeline, ParserRegistry, PhpParser } from '@contextualizer/analyzer';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import type { AnalysisResult } from '@contextualizer/core';
+import { AnalysisPipeline, ParserRegistry, PhpParser } from '@sniffo/analyzer';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import type { AnalysisResult } from '@sniffo/core';
 
 export async function runAnalyze(projectDir: string): Promise<AnalysisResult> {
-  const ctxDir = join(projectDir, '.contextualizer');
+  const ctxDir = join(projectDir, '.sniffo');
   mkdirSync(ctxDir, { recursive: true });
 
   const dbPath = join(ctxDir, 'graph.duckdb');
@@ -900,12 +900,12 @@ export async function runAnalyze(projectDir: string): Promise<AnalysisResult> {
 `packages/cli/src/commands/update.ts`:
 ```typescript
 import { join, basename } from 'node:path';
-import { AnalysisPipeline, ParserRegistry, PhpParser } from '@contextualizer/analyzer';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import type { AnalysisResult } from '@contextualizer/core';
+import { AnalysisPipeline, ParserRegistry, PhpParser } from '@sniffo/analyzer';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import type { AnalysisResult } from '@sniffo/core';
 
 export async function runUpdate(projectDir: string, files?: string[]): Promise<AnalysisResult> {
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 
@@ -929,11 +929,11 @@ export async function runUpdate(projectDir: string, files?: string[]): Promise<A
 `packages/cli/src/commands/status.ts`:
 ```typescript
 import { join } from 'node:path';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { getStalenessReport, type StalenessReport } from '@contextualizer/analyzer';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { getStalenessReport, type StalenessReport } from '@sniffo/analyzer';
 
 export async function runStatus(projectDir: string): Promise<StalenessReport> {
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 
@@ -956,8 +956,8 @@ export function createCli(): Command {
   const program = new Command();
 
   program
-    .name('lpc')
-    .description('llmProjectContextualizer -- Codebase Knowledge Graph Tool')
+    .name('sniffo')
+    .description('sniffo -- Codebase Knowledge Graph Tool')
     .version('0.0.1');
 
   program
@@ -1008,7 +1008,7 @@ export { cascadeInvalidation, type InvalidationResult } from './pipeline/cascade
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/cli test`
+Run: `pnpm --filter @sniffo/cli test`
 Expected: All 4 tests PASS
 
 **Step 5: Run full suite**
@@ -1063,8 +1063,8 @@ describe('Pre-commit hook installer', () => {
     expect(existsSync(hookPath)).toBe(true);
 
     const content = readFileSync(hookPath, 'utf-8');
-    expect(content).toContain('lpc');
-    expect(content).toContain('contextualizer');
+    expect(content).toContain('sniffo');
+    expect(content).toContain('sniffo');
   });
 
   it('makes hook executable', async () => {
@@ -1087,17 +1087,17 @@ describe('Pre-commit hook installer', () => {
 
     const content = readFileSync(hookPath, 'utf-8');
     expect(content).toContain('existing hook');
-    expect(content).toContain('contextualizer');
+    expect(content).toContain('sniffo');
   });
 
-  it('uninstalls hook by removing contextualizer section', async () => {
+  it('uninstalls hook by removing sniffo section', async () => {
     await installHook(tempDir);
     await uninstallHook(tempDir);
 
     const hookPath = join(tempDir, '.git', 'hooks', 'pre-commit');
     if (existsSync(hookPath)) {
       const content = readFileSync(hookPath, 'utf-8');
-      expect(content).not.toContain('contextualizer');
+      expect(content).not.toContain('sniffo');
     }
   });
 
@@ -1116,17 +1116,17 @@ describe('Pre-commit hook installer', () => {
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 
-const HOOK_START_MARKER = '# --- contextualizer pre-commit hook start ---';
-const HOOK_END_MARKER = '# --- contextualizer pre-commit hook end ---';
+const HOOK_START_MARKER = '# --- sniffo pre-commit hook start ---';
+const HOOK_END_MARKER = '# --- sniffo pre-commit hook end ---';
 
 const HOOK_CONTENT = `
 ${HOOK_START_MARKER}
-# Auto-update contextualizer graph on staged PHP files
+# Auto-update sniffo graph on staged PHP files
 STAGED_PHP_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.php')
 if [ -n "$STAGED_PHP_FILES" ]; then
-  if command -v lpc &> /dev/null; then
-    echo "[contextualizer] Updating graph for staged PHP files..."
-    lpc update -d "$(git rev-parse --show-toplevel)" 2>/dev/null || true
+  if command -v sniffo &> /dev/null; then
+    echo "[sniffo] Updating graph for staged PHP files..."
+    sniffo update -d "$(git rev-parse --show-toplevel)" 2>/dev/null || true
   fi
 fi
 ${HOOK_END_MARKER}
@@ -1210,7 +1210,7 @@ program
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/cli test`
+Run: `pnpm --filter @sniffo/cli test`
 Expected: All tests PASS (commands + hook tests)
 
 **Step 5: Run full suite**

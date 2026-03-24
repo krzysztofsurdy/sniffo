@@ -4,7 +4,7 @@
 
 **Goal:** Build the multi-pass analysis pipeline that resolves cross-file relationships, stores the full graph in DuckDB+DuckPGQ, and constructs the C4-model hierarchy (L1-L4).
 
-**Architecture:** New `@contextualizer/storage` package with DuckDB graph store abstraction. Extend `@contextualizer/analyzer` with pipeline orchestrator, file discovery, change detection, cross-file resolution, hierarchy construction, and edge aggregation. No embeddings yet (Phase 4).
+**Architecture:** New `@sniffo/storage` package with DuckDB graph store abstraction. Extend `@sniffo/analyzer` with pipeline orchestrator, file discovery, change detection, cross-file resolution, hierarchy construction, and edge aggregation. No embeddings yet (Phase 4).
 
 **Tech Stack:** DuckDB (duckdb-async), fast-glob, p-limit, existing Tree-sitter PHP parser from Phase 1
 
@@ -20,7 +20,7 @@
 
 ---
 
-## Task 1: Create @contextualizer/storage package scaffold
+## Task 1: Create @sniffo/storage package scaffold
 
 **Files:**
 - Create: `packages/storage/package.json`
@@ -32,7 +32,7 @@
 
 ```json
 {
-  "name": "@contextualizer/storage",
+  "name": "@sniffo/storage",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -51,7 +51,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
+    "@sniffo/core": "workspace:*",
     "duckdb-async": "^1.1.0"
   }
 }
@@ -101,7 +101,7 @@ Expected: Clean build, no errors.
 
 ```bash
 git add packages/storage/
-git commit -m "feat: scaffold @contextualizer/storage package"
+git commit -m "feat: scaffold @sniffo/storage package"
 ```
 
 ---
@@ -117,7 +117,7 @@ git commit -m "feat: scaffold @contextualizer/storage package"
 ```typescript
 // packages/storage/src/__tests__/graph-store.contract.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import type { GraphStore } from '../graph-store.js';
 
 // This test will be used by both DuckDB and any future adapter.
@@ -382,14 +382,14 @@ export function graphStoreContractTests(
 
 **Step 2: Run test to verify it fails (no GraphStore interface yet)**
 
-Run: `pnpm --filter @contextualizer/storage test`
+Run: `pnpm --filter @sniffo/storage test`
 Expected: FAIL -- cannot resolve `../graph-store.js`
 
 **Step 3: Write the GraphStore interface**
 
 ```typescript
 // packages/storage/src/graph-store.ts
-import type { BaseNode, BaseEdge, GraphLevel, NodeType, EdgeType } from '@contextualizer/core';
+import type { BaseNode, BaseEdge, GraphLevel, NodeType, EdgeType } from '@sniffo/core';
 
 export interface StoredNode {
   id: string;
@@ -476,7 +476,7 @@ export type { GraphStore, StoredNode, StoredEdge, AnalysisRun } from './graph-st
 
 **Step 5: Run typecheck**
 
-Run: `pnpm --filter @contextualizer/storage typecheck`
+Run: `pnpm --filter @sniffo/storage typecheck`
 Expected: PASS
 
 **Step 6: Commit**
@@ -512,7 +512,7 @@ describe('DuckDBGraphStore', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/storage test`
+Run: `pnpm --filter @sniffo/storage test`
 Expected: FAIL -- cannot resolve `../duckdb-store.js`
 
 **Step 3: Implement DuckDBGraphStore**
@@ -520,7 +520,7 @@ Expected: FAIL -- cannot resolve `../duckdb-store.js`
 ```typescript
 // packages/storage/src/duckdb-store.ts
 import { Database } from 'duckdb-async';
-import type { NodeType, EdgeType, GraphLevel } from '@contextualizer/core';
+import type { NodeType, EdgeType, GraphLevel } from '@sniffo/core';
 import type { GraphStore, StoredNode, StoredEdge, AnalysisRun } from './graph-store.js';
 
 export class DuckDBGraphStore implements GraphStore {
@@ -813,7 +813,7 @@ export { DuckDBGraphStore } from './duckdb-store.js';
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/storage test`
+Run: `pnpm --filter @sniffo/storage test`
 Expected: All contract tests PASS
 
 **Step 6: Commit**
@@ -910,12 +910,12 @@ describe('discoverFiles', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/file-discovery.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/file-discovery.test.ts`
 Expected: FAIL -- cannot resolve `../file-discovery.js`
 
 **Step 3: Install fast-glob dependency**
 
-Run: `pnpm --filter @contextualizer/analyzer add fast-glob`
+Run: `pnpm --filter @sniffo/analyzer add fast-glob`
 
 **Step 4: Implement file-discovery.ts**
 
@@ -936,7 +936,7 @@ const DEFAULT_EXCLUDES = [
   'vendor/**',
   'node_modules/**',
   '.git/**',
-  '.contextualizer/**',
+  '.sniffo/**',
   'dist/**',
   'build/**',
   'var/**',
@@ -995,7 +995,7 @@ export async function discoverFiles(
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/file-discovery.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/file-discovery.test.ts`
 Expected: All 5 tests PASS
 
 **Step 6: Commit**
@@ -1094,7 +1094,7 @@ describe('detectChanges', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/change-detector.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/change-detector.test.ts`
 Expected: FAIL
 
 **Step 3: Implement change-detector.ts**
@@ -1150,7 +1150,7 @@ export async function detectChanges(
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/change-detector.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/change-detector.test.ts`
 Expected: All 4 tests PASS
 
 **Step 5: Commit**
@@ -1173,8 +1173,8 @@ git commit -m "feat: add change detection module for incremental analysis"
 ```typescript
 // packages/analyzer/src/pipeline/__tests__/reference-resolver.test.ts
 import { describe, it, expect } from 'vitest';
-import { ReferenceKind } from '@contextualizer/core';
-import type { ParsedReference, ImportStatement } from '@contextualizer/core';
+import { ReferenceKind } from '@sniffo/core';
+import type { ParsedReference, ImportStatement } from '@sniffo/core';
 import {
   resolveReferences,
   type SymbolIndex,
@@ -1304,14 +1304,14 @@ describe('resolveReferences', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/reference-resolver.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/reference-resolver.test.ts`
 Expected: FAIL
 
 **Step 3: Implement reference-resolver.ts**
 
 ```typescript
 // packages/analyzer/src/pipeline/reference-resolver.ts
-import type { ParsedReference, ImportStatement } from '@contextualizer/core';
+import type { ParsedReference, ImportStatement } from '@sniffo/core';
 
 export interface SymbolIndex {
   byFqn: Map<string, string>;  // FQN -> nodeId
@@ -1420,7 +1420,7 @@ function resolveOne(
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/reference-resolver.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/reference-resolver.test.ts`
 Expected: All 8 tests PASS
 
 **Step 5: Commit**
@@ -1443,8 +1443,8 @@ git commit -m "feat: add cross-file reference resolver with 4-level resolution s
 ```typescript
 // packages/analyzer/src/pipeline/__tests__/hierarchy-builder.test.ts
 import { describe, it, expect } from 'vitest';
-import { GraphLevel, NodeType, createNodeId } from '@contextualizer/core';
-import type { StoredNode } from '@contextualizer/storage';
+import { GraphLevel, NodeType, createNodeId } from '@sniffo/core';
+import type { StoredNode } from '@sniffo/storage';
 import { buildHierarchy } from '../hierarchy-builder.js';
 
 function makeNode(type: NodeType, fqn: string, filePath: string): StoredNode {
@@ -1528,14 +1528,14 @@ describe('buildHierarchy', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/hierarchy-builder.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/hierarchy-builder.test.ts`
 Expected: FAIL
 
-**Step 3: Add @contextualizer/storage as dependency of analyzer**
+**Step 3: Add @sniffo/storage as dependency of analyzer**
 
 Add to `packages/analyzer/package.json` dependencies:
 ```json
-"@contextualizer/storage": "workspace:*"
+"@sniffo/storage": "workspace:*"
 ```
 
 Run: `pnpm install`
@@ -1544,8 +1544,8 @@ Run: `pnpm install`
 
 ```typescript
 // packages/analyzer/src/pipeline/hierarchy-builder.ts
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
-import type { StoredNode, StoredEdge } from '@contextualizer/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
+import type { StoredNode, StoredEdge } from '@sniffo/storage';
 
 export interface HierarchyResult {
   systemNode: StoredNode;
@@ -1644,7 +1644,7 @@ function extractNamespace(qualifiedName: string): string {
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/hierarchy-builder.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/hierarchy-builder.test.ts`
 Expected: All 5 tests PASS
 
 **Step 6: Commit**
@@ -1667,8 +1667,8 @@ git commit -m "feat: add hierarchy builder for L1 System and L2 Container nodes"
 ```typescript
 // packages/analyzer/src/pipeline/__tests__/edge-aggregator.test.ts
 import { describe, it, expect } from 'vitest';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
-import type { StoredNode, StoredEdge } from '@contextualizer/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
+import type { StoredNode, StoredEdge } from '@sniffo/storage';
 import { aggregateEdges } from '../edge-aggregator.js';
 
 describe('aggregateEdges', () => {
@@ -1784,15 +1784,15 @@ describe('aggregateEdges', () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/edge-aggregator.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/edge-aggregator.test.ts`
 Expected: FAIL
 
 **Step 3: Implement edge-aggregator.ts**
 
 ```typescript
 // packages/analyzer/src/pipeline/edge-aggregator.ts
-import { GraphLevel, EdgeType, createEdgeId } from '@contextualizer/core';
-import type { StoredEdge } from '@contextualizer/storage';
+import { GraphLevel, EdgeType, createEdgeId } from '@sniffo/core';
+import type { StoredEdge } from '@sniffo/storage';
 
 const AGGREGATED_TYPE = EdgeType.DEPENDS_ON;
 
@@ -1850,7 +1850,7 @@ function aggregateToLevel(
 
 **Step 4: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/edge-aggregator.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/edge-aggregator.test.ts`
 Expected: All 4 tests PASS
 
 **Step 5: Commit**
@@ -1877,10 +1877,10 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';
-import { NodeType, EdgeType, GraphLevel } from '@contextualizer/core';
+import { NodeType, EdgeType, GraphLevel } from '@sniffo/core';
 
 describe('AnalysisPipeline', () => {
   let tempDir: string;
@@ -2029,7 +2029,7 @@ class B {}
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/analysis-pipeline.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/analysis-pipeline.test.ts`
 Expected: FAIL
 
 **Step 3: Implement analysis-pipeline.ts**
@@ -2051,8 +2051,8 @@ import {
   createEdgeId,
   hashContent,
   ReferenceKind,
-} from '@contextualizer/core';
-import type { GraphStore, StoredNode } from '@contextualizer/storage';
+} from '@sniffo/core';
+import type { GraphStore, StoredNode } from '@sniffo/storage';
 import type { ParserRegistry } from '../parsers/parser-registry.js';
 import { discoverFiles, type DiscoveredFile } from './file-discovery.js';
 import { detectChanges, type ChangeSet, type FileChange } from './change-detector.js';
@@ -2354,12 +2354,12 @@ export { aggregateEdges } from './pipeline/edge-aggregator.js';
 
 **Step 5: Run tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/analysis-pipeline.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/analysis-pipeline.test.ts`
 Expected: All 6 tests PASS
 
 **Step 6: Run all analyzer tests to verify no regressions**
 
-Run: `pnpm --filter @contextualizer/analyzer test`
+Run: `pnpm --filter @sniffo/analyzer test`
 Expected: All tests PASS (existing parser tests + new pipeline tests)
 
 **Step 7: Commit**
@@ -2573,10 +2573,10 @@ class OrderController {
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';
-import { NodeType, EdgeType, GraphLevel } from '@contextualizer/core';
+import { NodeType, EdgeType, GraphLevel } from '@sniffo/core';
 
 const FIXTURE_DIR = join(import.meta.dirname, '../../../test/fixtures/php-symfony-project');
 
@@ -2785,7 +2785,7 @@ describe('Integration: Symfony-like PHP project', () => {
 
 **Step 3: Run test to verify it fails**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/integration.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/integration.test.ts`
 Expected: FAIL (fixture files don't exist yet)
 
 **Step 4: Create all fixture PHP files listed in Step 1**
@@ -2794,7 +2794,7 @@ Create each file at the exact path specified.
 
 **Step 5: Run integration tests**
 
-Run: `pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/pipeline/__tests__/integration.test.ts`
+Run: `pnpm --filter @sniffo/analyzer test -- --reporter verbose src/pipeline/__tests__/integration.test.ts`
 Expected: All 10 tests PASS
 
 **Step 6: Run full test suite**

@@ -1,4 +1,4 @@
-import type { ParsedReference, ImportStatement } from '@contextualizer/core';
+import type { ParsedReference, ImportStatement } from '@sniffo/core';
 
 export interface SymbolIndex {
   byFqn: Map<string, string>;  // FQN -> nodeId

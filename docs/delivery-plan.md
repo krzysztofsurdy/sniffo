@@ -1,4 +1,4 @@
-# llmProjectContextualizer -- Delivery Plan
+# llmProjectSniffo -- Delivery Plan
 
 **Project:** Codebase Knowledge Graph Tool (Claude Code Plugin + Web UI)
 **Date:** 2026-03-22
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This plan delivers the llmProjectContextualizer in 7 phases, each producing a testable increment. The tool parses codebases into a knowledge graph, stores relationships in a graph database, integrates with Claude Code via MCP, and provides an interactive web UI for exploration.
+This plan delivers the llmProjectSniffo in 7 phases, each producing a testable increment. The tool parses codebases into a knowledge graph, stores relationships in a graph database, integrates with Claude Code via MCP, and provides an interactive web UI for exploration.
 
 **Critical finding from research:** KuzuDB was archived in October 2025. The plan accounts for this by recommending a storage spike upfront and using an abstraction layer to decouple from any specific graph database vendor. FalkorDB Lite (zero-config embedded, TypeScript-native) and LadybugDB (KuzuDB successor, MIT license) are the leading replacement candidates.
 
@@ -23,8 +23,8 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 
 **Deliverables:**
 - Monorepo scaffolding (pnpm workspaces, TypeScript project references, shared tsconfig)
-- `@lpc/core` package: graph schema types (Node, Edge, GraphDocument), parser interface, relationship type enums
-- `@lpc/analyzer` package: Tree-sitter PHP integration, single-file parsing producing AST-derived graph nodes
+- `@sniffo/core` package: graph schema types (Node, Edge, GraphDocument), parser interface, relationship type enums
+- `@sniffo/analyzer` package: Tree-sitter PHP integration, single-file parsing producing AST-derived graph nodes
 - Parsed output for: classes, interfaces, traits, enums, functions, methods, properties, constants
 - Relationship extraction within a single file: `CONTAINS`, `IMPLEMENTS`, `EXTENDS`, `USES_TRAIT`, `HAS_METHOD`, `HAS_PROPERTY`
 - Unit tests for each node/edge type against representative PHP fixtures
@@ -50,12 +50,12 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 **Objective:** Build multi-pass analysis that resolves cross-file relationships, namespace resolution, and dependency injection patterns. Store the full graph in a persistent graph database.
 
 **Deliverables:**
-- `@lpc/analyzer` extension: multi-pass pipeline (Parse -> Resolve -> Link -> Enrich)
+- `@sniffo/analyzer` extension: multi-pass pipeline (Parse -> Resolve -> Link -> Enrich)
 - Pass 1 (Parse): parallel single-file parsing from Phase 1
 - Pass 2 (Resolve): namespace resolution, use-statement tracking, FQCN mapping
 - Pass 3 (Link): cross-file relationships: `CALLS`, `INSTANTIATES`, `INJECTS`, `DEPENDS_ON`, `IMPORTS`
 - Pass 4 (Enrich): method parameter types, return types, complexity metrics
-- `@lpc/storage` package: graph DB abstraction interface, concrete adapter (FalkorDB Lite or LadybugDB -- based on spike outcome)
+- `@sniffo/storage` package: graph DB abstraction interface, concrete adapter (FalkorDB Lite or LadybugDB -- based on spike outcome)
 - Cypher-based schema creation and population
 - Integration tests: analyze a multi-file PHP project, verify cross-file edges exist and are correct
 - Accuracy test suite: a curated set of PHP patterns with expected graph output
@@ -85,9 +85,9 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 - Incremental update pipeline: only re-analyze changed files
 - Cascade invalidation: when file A changes, re-resolve files that depend on A
 - Staleness detection: query which nodes are potentially stale
-- `@lpc/cli` package (minimal): `lpc update` command that runs incremental analysis
-- Git pre-commit hook: runs `lpc update` on staged PHP files
-- Hook installer: `lpc install-hook` command
+- `@sniffo/cli` package (minimal): `sniffo update` command that runs incremental analysis
+- Git pre-commit hook: runs `sniffo update` on staged PHP files
+- Hook installer: `sniffo install-hook` command
 - Performance test: incremental update of 5 changed files in a 500-file project completes in under 5 seconds
 
 **Dependencies:** Phase 2 (full pipeline, storage)
@@ -112,14 +112,14 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 **Objective:** Deliver the full CLI toolkit and MCP server so Claude Code can query and navigate the knowledge graph.
 
 **Deliverables:**
-- `@lpc/cli` full commands:
-  - `lpc init` -- initialize project config, create DB, install hook
-  - `lpc analyze` -- full analysis from scratch
-  - `lpc update` -- incremental update (from Phase 3)
-  - `lpc status` -- show graph stats, staleness summary, last analysis time
-  - `lpc serve` -- start HTTP API server for web UI
-  - `lpc query <cypher>` -- ad-hoc Cypher query
-- `@lpc/mcp` package: MCP server with tools:
+- `@sniffo/cli` full commands:
+  - `sniffo init` -- initialize project config, create DB, install hook
+  - `sniffo analyze` -- full analysis from scratch
+  - `sniffo update` -- incremental update (from Phase 3)
+  - `sniffo status` -- show graph stats, staleness summary, last analysis time
+  - `sniffo serve` -- start HTTP API server for web UI
+  - `sniffo query <cypher>` -- ad-hoc Cypher query
+- `@sniffo/mcp` package: MCP server with tools:
   - `analyze_project` -- trigger full/incremental analysis
   - `query_graph` -- execute Cypher queries against the graph
   - `search_symbols` -- find nodes by name, type, or pattern
@@ -141,7 +141,7 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 - All CLI commands work end-to-end on a real PHP project
 - Claude Code can call all MCP tools and receive correct responses
 - Semantic search returns relevant results for natural language queries like "find the user authentication logic"
-- `lpc init && lpc analyze && lpc status` works as a complete onboarding flow
+- `sniffo init && sniffo analyze && sniffo status` works as a complete onboarding flow
 
 **Complexity:** XL
 
@@ -152,13 +152,13 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 **Objective:** Build a functional web interface that renders the knowledge graph and allows basic navigation.
 
 **Deliverables:**
-- `@lpc/http` package: Express/Fastify REST API
+- `@sniffo/http` package: Express/Fastify REST API
   - `GET /api/graph` -- full graph or filtered subgraph
   - `GET /api/nodes/:id` -- node details with relationships
   - `GET /api/search?q=` -- symbol search
   - `GET /api/stats` -- graph statistics
   - `GET /api/freshness` -- staleness report
-- `@lpc/web` package: React + Sigma.js + Tailwind CSS
+- `@sniffo/web` package: React + Sigma.js + Tailwind CSS
   - Force-directed graph layout (full project view)
   - Node coloring by type (class, interface, trait, function, etc.)
   - Edge coloring by relationship type
@@ -166,7 +166,7 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
   - Click edge to see relationship details
   - Basic zoom, pan, selection
   - Node search with autocomplete
-- `lpc serve` integration: serves both API and static web UI
+- `sniffo serve` integration: serves both API and static web UI
 
 **Dependencies:** Phase 4 (HTTP API, CLI serve command)
 
@@ -247,7 +247,7 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 - TypeScript parser handles standard TS patterns (classes, interfaces, modules, decorators)
 - Full analysis of a 1000-file project completes in under 2 minutes
 - Web UI renders 1000-node graph at 30fps minimum
-- Published to npm and installable via `npx @lpc/cli init`
+- Published to npm and installable via `npx @sniffo/cli init`
 
 **Complexity:** L
 
@@ -263,7 +263,7 @@ This plan delivers the llmProjectContextualizer in 7 phases, each producing a te
 | R4 | **Sigma.js performance at scale** -- Graphs over 1000 nodes may be sluggish | Medium | Medium | Implement Level-of-Detail from Phase 6. Use namespace clustering to reduce visible nodes. Lazy-load detail levels. Profile early with synthetic large graphs. |
 | R5 | **Pre-commit hook reliability** -- Different OS, shell, git versions, node versions | Medium | High | Test on macOS and Linux (Ubuntu). Use `husky` or similar established hook manager rather than raw shell scripts. Provide `--no-verify` escape hatch documentation. Add timeout safeguard (kill after 15s). |
 | R6 | **MCP protocol evolution** -- Claude Code MCP spec may change | Low | Medium | Pin MCP SDK version. Wrap MCP interactions in a thin adapter. Monitor Anthropic changelog. |
-| R7 | **Vector embedding first-run latency** -- Model download and warmup on first use | Medium | Low | Make embeddings optional (disabled by default). Download model during `lpc init` with progress indicator. Cache model locally. |
+| R7 | **Vector embedding first-run latency** -- Model download and warmup on first use | Medium | Low | Make embeddings optional (disabled by default). Download model during `sniffo init` with progress indicator. Cache model locally. |
 | R8 | **Solo developer burnout** -- XL phases may feel overwhelming | Medium | High | Each phase has clear deliverables. Phases are designed to be independently satisfying. No phase exceeds ~3 weeks of focused effort. Celebrate milestones. |
 | R9 | **Cascade invalidation over-triggering** -- Changing a base class re-analyzes half the project | Medium | Medium | Limit cascade depth (configurable, default 2 hops). Track "affected but not changed" vs "structurally changed" distinction. Profile cascade breadth on real projects. |
 | R10 | **TypeScript learning curve** -- Developer is primarily PHP; TS tooling, monorepo, and async patterns may slow progress | Medium | Medium | Start simple (no complex generics in Phase 1). Use strict TS config from day 1 to catch issues early. Lean on Claude Code for TS idiom guidance. |

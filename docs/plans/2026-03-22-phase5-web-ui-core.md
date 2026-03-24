@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Build a functional web interface that renders the knowledge graph with Sigma.js, allows node search, shows detail panels, and integrates with `lpc serve`.
+**Goal:** Build a functional web interface that renders the knowledge graph with Sigma.js, allows node search, shows detail panels, and integrates with `sniffo serve`.
 
-**Architecture:** New `@contextualizer/web` package using React 18 + Vite + Tailwind CSS + Sigma.js + Graphology. The Fastify web-server serves the built static files. Dark-mode-first design matching the spec in `docs/ui-ux-design-system.md`.
+**Architecture:** New `@sniffo/web` package using React 18 + Vite + Tailwind CSS + Sigma.js + Graphology. The Fastify web-server serves the built static files. Dark-mode-first design matching the spec in `docs/ui-ux-design-system.md`.
 
 **Tech Stack:** React 18, Vite 6, Tailwind CSS 4, @sigma/react, graphology, graphology-layout-forceatlas2, @tanstack/react-query, zustand
 
@@ -15,7 +15,7 @@
 
 ---
 
-## Task 1: Scaffold @contextualizer/web package
+## Task 1: Scaffold @sniffo/web package
 
 **Files:**
 - Create: `packages/web/package.json`
@@ -32,7 +32,7 @@
 
 ```json
 {
-  "name": "@contextualizer/web",
+  "name": "@sniffo/web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -128,7 +128,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Contextualizer</title>
+    <title>Sniffo</title>
   </head>
   <body class="bg-[#0D1117] text-[#E6EDF3] antialiased">
     <div id="root"></div>
@@ -222,7 +222,7 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex flex-col bg-surface-900">
       <header className="h-10 flex items-center px-4 bg-surface-800 border-b border-border-default">
-        <h1 className="text-sm font-semibold text-text-primary">Contextualizer</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Sniffo</h1>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex items-center justify-center text-text-secondary">
@@ -237,7 +237,7 @@ export default function App() {
 **Step 10: Install dependencies and verify dev server starts**
 
 ```bash
-cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
+cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectSniffo
 pnpm install
 cd packages/web
 pnpm dev -- --host 127.0.0.1 --port 5173 &
@@ -248,15 +248,15 @@ kill %1
 **Step 11: Verify build works**
 
 ```bash
-cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
-pnpm --filter @contextualizer/web build
+cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectSniffo
+pnpm --filter @sniffo/web build
 ```
 
 **Step 12: Commit**
 
 ```bash
 git add packages/web/
-git commit -m "feat: scaffold @contextualizer/web package with React, Vite, Tailwind CSS v4"
+git commit -m "feat: scaffold @sniffo/web package with React, Vite, Tailwind CSS v4"
 ```
 
 ---
@@ -806,7 +806,7 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex flex-col bg-surface-900">
       <header className="h-10 flex items-center px-4 bg-surface-800 border-b border-border-default">
-        <h1 className="text-sm font-semibold text-text-primary">Contextualizer</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Sniffo</h1>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <GraphCanvas />
@@ -819,7 +819,7 @@ export default function App() {
 **Step 5: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 6: Commit**
@@ -927,7 +927,7 @@ Update `App.tsx` header to include `<SearchBar />` between the title and a space
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**
@@ -1088,7 +1088,7 @@ export default function DetailPanel() {
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**
@@ -1233,7 +1233,7 @@ export default function FilterPanel() {
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**
@@ -1307,7 +1307,7 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex flex-col bg-surface-900">
       <header className="h-10 flex items-center px-4 bg-surface-800 border-b border-border-default gap-4">
-        <h1 className="text-sm font-semibold text-text-primary">Contextualizer</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Sniffo</h1>
         <SearchBar />
       </header>
       <FreshnessBar />
@@ -1324,7 +1324,7 @@ export default function App() {
 **Step 3: Build and verify**
 
 ```bash
-pnpm --filter @contextualizer/web build
+pnpm --filter @sniffo/web build
 ```
 
 **Step 4: Commit**
@@ -1336,7 +1336,7 @@ git commit -m "feat: add freshness bar with staleness indicator and refresh butt
 
 ---
 
-## Task 9: Serve static web UI from `lpc serve`
+## Task 9: Serve static web UI from `sniffo serve`
 
 **Files:**
 - Modify: `packages/web-server/package.json` -- add @fastify/static dependency
@@ -1385,12 +1385,12 @@ Modify `packages/cli/src/commands/serve.ts` to resolve the web package dist dire
 ```typescript
 import { join, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { fileURLToPath } from 'node:url';
 
 export async function runServe(projectDir: string, options: { port?: number; host?: string } = {}): Promise<void> {
-  const { startServer } = await import('@contextualizer/web-server');
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const { startServer } = await import('@sniffo/web-server');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 
@@ -1400,7 +1400,7 @@ export async function runServe(projectDir: string, options: { port?: number; hos
   // Try to find web package dist
   let staticDir: string | undefined;
   try {
-    const webPkgPath = import.meta.resolve('@contextualizer/web/package.json');
+    const webPkgPath = import.meta.resolve('@sniffo/web/package.json');
     const webPkgDir = dirname(fileURLToPath(webPkgPath));
     const distDir = join(webPkgDir, 'dist');
     if (existsSync(distDir)) {
@@ -1418,12 +1418,12 @@ export async function runServe(projectDir: string, options: { port?: number; hos
 }
 ```
 
-Also add `"@contextualizer/web": "workspace:*"` to `packages/cli/package.json` dependencies so the resolution works.
+Also add `"@sniffo/web": "workspace:*"` to `packages/cli/package.json` dependencies so the resolution works.
 
 **Step 4: Install, build all, verify**
 
 ```bash
-cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
+cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectSniffo
 pnpm install
 pnpm build
 ```
@@ -1431,14 +1431,14 @@ pnpm build
 **Step 5: Run existing web-server tests**
 
 ```bash
-pnpm --filter @contextualizer/web-server test -- --reporter verbose
+pnpm --filter @sniffo/web-server test -- --reporter verbose
 ```
 
 **Step 6: Commit**
 
 ```bash
 git add packages/web-server/ packages/cli/ pnpm-lock.yaml
-git commit -m "feat: serve static web UI from lpc serve with SPA fallback"
+git commit -m "feat: serve static web UI from sniffo serve with SPA fallback"
 ```
 
 ---
@@ -1480,13 +1480,13 @@ git commit -m "chore: phase 5 complete -- web UI core with graph visualization"
 | 6 | Node detail panel | Inspection |
 | 7 | Filter panel (types + levels) | Filtering |
 | 8 | Freshness bar + refresh | Freshness awareness |
-| 9 | Static file serving from lpc serve | Integration |
+| 9 | Static file serving from sniffo serve | Integration |
 | 10 | Final build verification | Quality gate |
 
-**New package:** @contextualizer/web
+**New package:** @sniffo/web
 **Definition of Done:**
 - [x] Web UI renders a 200-node graph smoothly (60fps pan/zoom)
 - [x] Clicking a node shows its properties and relationships
 - [x] Search finds nodes by name and navigates to them
 - [x] UI is usable without documentation (intuitive navigation)
-- [x] `lpc serve` starts both API and web UI
+- [x] `sniffo serve` starts both API and web UI

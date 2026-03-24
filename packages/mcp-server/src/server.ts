@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import type { GraphStore } from '@contextualizer/storage';
+import type { GraphStore } from '@sniffo/storage';
 import { registerAnalyzeTool } from './tools/analyze.js';
 import { registerSearchTool } from './tools/search.js';
 import { registerReferencesTools } from './tools/references.js';
@@ -9,7 +9,7 @@ import { registerRefreshTool } from './tools/refresh.js';
 
 export function createMcpServer(store: GraphStore, projectDir: string): McpServer {
   const server = new McpServer({
-    name: 'contextualizer',
+    name: 'sniffo',
     version: '0.0.1',
   });
 

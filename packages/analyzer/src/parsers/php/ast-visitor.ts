@@ -7,7 +7,7 @@ import {
   SymbolKind,
   Modifier,
   ReferenceKind,
-} from '@contextualizer/core';
+} from '@sniffo/core';
 import { findChildByType, findChildrenByType, findDescendantsByType, getNodeText } from './node-utils.js';
 
 interface VisitorContext {

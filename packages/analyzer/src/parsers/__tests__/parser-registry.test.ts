@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ParserRegistry } from '../parser-registry.js';
-import type { LanguageParser, ParsedFile } from '@contextualizer/core';
+import type { LanguageParser, ParsedFile } from '@sniffo/core';
 
 function createMockParser(lang: string, extensions: string[]): LanguageParser {
   return {

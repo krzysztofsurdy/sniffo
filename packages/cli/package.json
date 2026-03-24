@@ -1,10 +1,10 @@
 {
-  "name": "@contextualizer/cli",
+  "name": "@sniffo/cli",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "bin": {
-    "lpc": "dist/index.js"
+    "sniffo": "dist/index.js"
   },
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
@@ -15,11 +15,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/analyzer": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
-    "@contextualizer/web-server": "workspace:*",
-    "@contextualizer/web": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/analyzer": "workspace:*",
+    "@sniffo/storage": "workspace:*",
+    "@sniffo/web-server": "workspace:*",
+    "@sniffo/web": "workspace:*",
     "commander": "^13.0.0"
   }
 }

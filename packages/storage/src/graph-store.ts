@@ -1,4 +1,4 @@
-import type { GraphLevel, NodeType, EdgeType } from '@contextualizer/core';
+import type { GraphLevel, NodeType, EdgeType } from '@sniffo/core';
 
 export interface StoredNode {
   id: string;

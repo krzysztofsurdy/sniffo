@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { installHook, uninstallHook } from '../commands/install-hook.js';
 
-const MARKER_START = '# --- contextualizer pre-commit hook start ---';
-const MARKER_END = '# --- contextualizer pre-commit hook end ---';
+const MARKER_START = '# --- sniffo pre-commit hook start ---';
+const MARKER_END = '# --- sniffo pre-commit hook end ---';
 
 let tempDir: string;
 
@@ -34,7 +34,7 @@ describe('installHook', () => {
     expect(content).toContain('#!/bin/sh');
     expect(content).toContain(MARKER_START);
     expect(content).toContain(MARKER_END);
-    expect(content).toContain('lpc update');
+    expect(content).toContain('sniffo update');
   });
 
   it('makes hook executable', async () => {
@@ -75,7 +75,7 @@ describe('installHook', () => {
 });
 
 describe('uninstallHook', () => {
-  it('uninstalls hook by removing contextualizer section', async () => {
+  it('uninstalls hook by removing sniffo section', async () => {
     const dir = await createTempGitRepo();
 
     await installHook(dir);

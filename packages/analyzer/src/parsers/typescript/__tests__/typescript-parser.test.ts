@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SymbolKind, ReferenceKind } from '@contextualizer/core';
+import { SymbolKind, ReferenceKind } from '@sniffo/core';
 import { TypeScriptParser } from '../typescript-parser.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -1,6 +1,6 @@
-import type { GraphStore, StoredNode, StoredEdge } from '@contextualizer/storage';
-import type { NodeType, EdgeType } from '@contextualizer/core';
-import { GraphLevel } from '@contextualizer/core';
+import type { GraphStore, StoredNode, StoredEdge } from '@sniffo/storage';
+import type { NodeType, EdgeType } from '@sniffo/core';
+import { GraphLevel } from '@sniffo/core';
 
 export interface ReferenceResult {
   source: StoredNode;

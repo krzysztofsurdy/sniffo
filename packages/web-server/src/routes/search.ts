@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { searchSymbols } from '@contextualizer/analyzer';
-import type { NodeType } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { searchSymbols } from '@sniffo/analyzer';
+import type { NodeType } from '@sniffo/core';
 
 export function registerSearchRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get<{ Querystring: { q: string; kind?: string } }>('/api/search', async (request, reply) => {

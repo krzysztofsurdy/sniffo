@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { findReferences, findDependencies, findDependents } from '@contextualizer/analyzer';
-import type { EdgeType } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { findReferences, findDependencies, findDependents } from '@sniffo/analyzer';
+import type { EdgeType } from '@sniffo/core';
 
 export function registerReferencesTools(server: McpServer, store: GraphStore): void {
   server.tool(

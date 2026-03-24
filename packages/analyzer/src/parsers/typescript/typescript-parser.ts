@@ -1,7 +1,7 @@
 import { Parser, Language } from 'web-tree-sitter';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import type { LanguageParser, ParsedFile } from '@contextualizer/core';
+import type { LanguageParser, ParsedFile } from '@sniffo/core';
 import { visitTree } from './ast-visitor.js';
 
 export class TypeScriptParser implements LanguageParser {

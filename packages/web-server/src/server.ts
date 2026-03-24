@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import type { GraphStore } from '@contextualizer/storage';
+import type { GraphStore } from '@sniffo/storage';
 import { registerGraphRoutes } from './routes/graph.js';
 import { registerSearchRoutes } from './routes/search.js';
 import { registerNodeRoutes } from './routes/node.js';
@@ -9,6 +9,7 @@ import { registerRefreshRoutes } from './routes/refresh.js';
 import { registerChildrenRoutes } from './routes/children.js';
 import { registerBlastRadiusRoutes } from './routes/blast-radius.js';
 import { registerCyclesRoutes } from './routes/cycles.js';
+import { registerWorkspaceRoutes } from './routes/workspaces.js';
 
 export interface ServerOptions {
   store: GraphStore;
@@ -32,6 +33,7 @@ export async function createServer(options: ServerOptions) {
   registerChildrenRoutes(app, store);
   registerBlastRadiusRoutes(app, store);
   registerCyclesRoutes(app, store);
+  registerWorkspaceRoutes(app, projectDir);
 
   if (options.staticDir) {
     const fastifyStatic = await import('@fastify/static');

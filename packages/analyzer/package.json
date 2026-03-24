@@ -1,5 +1,5 @@
 {
-  "name": "@contextualizer/analyzer",
+  "name": "@sniffo/analyzer",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -18,8 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@contextualizer/core": "workspace:*",
-    "@contextualizer/storage": "workspace:*",
+    "@sniffo/core": "workspace:*",
+    "@sniffo/storage": "workspace:*",
     "fast-glob": "^3.3.3",
     "tree-sitter-php": "^0.24.2",
     "tree-sitter-typescript": "^0.23.2",

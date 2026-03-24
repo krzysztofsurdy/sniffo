@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@sniffo/analyzer';
 
 export function registerRefreshTool(server: McpServer, store: GraphStore, projectDir: string): void {
   server.tool(

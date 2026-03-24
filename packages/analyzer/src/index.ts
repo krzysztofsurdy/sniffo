@@ -1,7 +1,7 @@
 export { ParserRegistry } from './parsers/parser-registry.js';
 export { PhpParser } from './parsers/php/php-parser.js';
 export { TypeScriptParser } from './parsers/typescript/typescript-parser.js';
-export { AnalysisPipeline, type PipelineOptions } from './pipeline/analysis-pipeline.js';
+export { AnalysisPipeline, type PipelineOptions, type ProgressEvent } from './pipeline/analysis-pipeline.js';
 export { discoverFiles, type DiscoveredFile } from './pipeline/file-discovery.js';
 export { detectChanges, type ChangeSet, type FileChange } from './pipeline/change-detector.js';
 export { resolveReferences, type SymbolIndex, type ResolvedReference, type ResolutionResult } from './pipeline/reference-resolver.js';
@@ -14,3 +14,4 @@ export type { ReferenceResult, DependencyResult, DependentResult } from './query
 export { findChildren, type ChildrenResult } from './query/children-query.js';
 export { computeBlastRadius, type BlastRadiusResult, type BlastRadiusNode } from './query/blast-radius.js';
 export { detectCycles } from './query/cycle-detector.js';
+export { detectWorkspaces, type WorkspaceInfo, type WorkspacePackage } from './pipeline/workspace-detector.js';

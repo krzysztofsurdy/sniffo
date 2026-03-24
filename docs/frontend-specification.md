@@ -1,4 +1,4 @@
-# Frontend Technical Specification: llmProjectContextualizer Web UI
+# Frontend Technical Specification: llmProjectSniffo Web UI
 
 **Version**: 1.0
 **Date**: 2026-03-22

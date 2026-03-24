@@ -1,5 +1,5 @@
-import { EdgeType } from '@contextualizer/core';
-import type { GraphStore } from '@contextualizer/storage';
+import { EdgeType } from '@sniffo/core';
+import type { GraphStore } from '@sniffo/storage';
 
 const MAX_DEPTH = 2;
 const STRUCTURAL_EDGE_TYPES = new Set([EdgeType.EXTENDS, EdgeType.IMPLEMENTS, EdgeType.USES_TRAIT]);

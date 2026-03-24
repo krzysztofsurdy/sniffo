@@ -21,7 +21,7 @@ export interface ProjectConfig {
 const DEFAULT_CONFIG: ProjectConfig = {
   version: 1,
   include: ['**/*.php', '**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
-  exclude: ['vendor/**', 'node_modules/**', '.git/**', '.contextualizer/**', 'dist/**', 'build/**', 'var/**'],
+  exclude: ['vendor/**', 'node_modules/**', '.git/**', '.sniffo/**', 'dist/**', 'build/**', 'var/**'],
   projectName: '',
   analysis: {
     concurrency: 4,
@@ -38,7 +38,7 @@ const DEFAULT_CONFIG: ProjectConfig = {
 export function loadConfig(projectDir: string): ProjectConfig {
   const config = { ...DEFAULT_CONFIG, projectName: basename(projectDir) };
 
-  const ctxConfigPath = join(projectDir, '.contextualizer', 'config.json');
+  const ctxConfigPath = join(projectDir, '.sniffo', 'config.json');
   if (existsSync(ctxConfigPath)) {
     try {
       const raw = JSON.parse(readFileSync(ctxConfigPath, 'utf-8'));
@@ -48,7 +48,7 @@ export function loadConfig(projectDir: string): ProjectConfig {
     }
   }
 
-  const lpcrcPath = join(projectDir, '.lpcrc.json');
+  const lpcrcPath = join(projectDir, '.snifforc.json');
   if (existsSync(lpcrcPath)) {
     try {
       const raw = JSON.parse(readFileSync(lpcrcPath, 'utf-8'));

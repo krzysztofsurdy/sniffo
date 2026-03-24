@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "contextualizer": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/../packages/mcp-server/dist/index.js"],
+      "env": {
+        "PROJECT_DIR": "."
+      }
+    }
+  }
+}

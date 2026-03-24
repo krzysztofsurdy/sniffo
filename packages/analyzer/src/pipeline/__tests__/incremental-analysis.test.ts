@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { AnalysisPipeline } from '../analysis-pipeline.js';
-import { DuckDBGraphStore } from '@contextualizer/storage';
+import { DuckDBGraphStore } from '@sniffo/storage';
 import { ParserRegistry } from '../../parsers/parser-registry.js';
 import { PhpParser } from '../../parsers/php/php-parser.js';
 

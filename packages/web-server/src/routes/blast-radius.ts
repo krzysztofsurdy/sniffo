@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { computeBlastRadius } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { computeBlastRadius } from '@sniffo/analyzer';
 
 export function registerBlastRadiusRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get<{ Params: { id: string }; Querystring: { depth?: string } }>('/api/blast-radius/:id', async (request) => {

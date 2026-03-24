@@ -23,9 +23,9 @@ describe('config loader', () => {
     expect(config.exclude).toContain('node_modules/**');
   });
 
-  it('loads config from .contextualizer/config.json', () => {
-    mkdirSync(join(tempDir, '.contextualizer'), { recursive: true });
-    writeFileSync(join(tempDir, '.contextualizer', 'config.json'), JSON.stringify({
+  it('loads config from .sniffo/config.json', () => {
+    mkdirSync(join(tempDir, '.sniffo'), { recursive: true });
+    writeFileSync(join(tempDir, '.sniffo', 'config.json'), JSON.stringify({
       version: 1,
       include: ['**/*.php'],
       exclude: ['vendor/**', 'tests/**'],
@@ -37,8 +37,8 @@ describe('config loader', () => {
   });
 
   it('merges with defaults for missing fields', () => {
-    mkdirSync(join(tempDir, '.contextualizer'), { recursive: true });
-    writeFileSync(join(tempDir, '.contextualizer', 'config.json'), JSON.stringify({
+    mkdirSync(join(tempDir, '.sniffo'), { recursive: true });
+    writeFileSync(join(tempDir, '.sniffo', 'config.json'), JSON.stringify({
       version: 1,
       include: ['**/*.py'],
     }));
@@ -48,8 +48,8 @@ describe('config loader', () => {
     expect(config.exclude.length).toBeGreaterThan(0);
   });
 
-  it('loads config from .lpcrc.json at project root', () => {
-    writeFileSync(join(tempDir, '.lpcrc.json'), JSON.stringify({
+  it('loads config from .snifforc.json at project root', () => {
+    writeFileSync(join(tempDir, '.snifforc.json'), JSON.stringify({
       include: ['src/**/*.ts'],
       exclude: ['dist/**'],
       projectName: 'my-project',
@@ -60,12 +60,12 @@ describe('config loader', () => {
     expect(config.projectName).toBe('my-project');
   });
 
-  it('prefers .contextualizer/config.json over .lpcrc.json', () => {
-    mkdirSync(join(tempDir, '.contextualizer'), { recursive: true });
-    writeFileSync(join(tempDir, '.contextualizer', 'config.json'), JSON.stringify({
+  it('prefers .sniffo/config.json over .snifforc.json', () => {
+    mkdirSync(join(tempDir, '.sniffo'), { recursive: true });
+    writeFileSync(join(tempDir, '.sniffo', 'config.json'), JSON.stringify({
       include: ['**/*.php'],
     }));
-    writeFileSync(join(tempDir, '.lpcrc.json'), JSON.stringify({
+    writeFileSync(join(tempDir, '.snifforc.json'), JSON.stringify({
       include: ['**/*.ts'],
     }));
 
@@ -74,7 +74,7 @@ describe('config loader', () => {
   });
 
   it('falls back to defaults on invalid JSON', () => {
-    writeFileSync(join(tempDir, '.lpcrc.json'), 'not valid json{{{');
+    writeFileSync(join(tempDir, '.snifforc.json'), 'not valid json{{{');
 
     const config = loadConfig(tempDir);
     expect(config.include).toContain('**/*.php');
@@ -87,7 +87,7 @@ describe('config loader', () => {
   });
 
   it('merges nested analysis config', () => {
-    writeFileSync(join(tempDir, '.lpcrc.json'), JSON.stringify({
+    writeFileSync(join(tempDir, '.snifforc.json'), JSON.stringify({
       analysis: { concurrency: 8 },
     }));
 

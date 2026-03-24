@@ -1,5 +1,5 @@
-import { GraphLevel, EdgeType, createEdgeId } from '@contextualizer/core';
-import type { StoredEdge } from '@contextualizer/storage';
+import { GraphLevel, EdgeType, createEdgeId } from '@sniffo/core';
+import type { StoredEdge } from '@sniffo/storage';
 
 const AGGREGATED_TYPE = EdgeType.DEPENDS_ON;
 
@@ -37,6 +37,17 @@ function aggregateToLevel(
 
   const result: StoredEdge[] = [];
   for (const bucket of buckets.values()) {
+    const metadata: Record<string, unknown> = {
+      constituentEdgeCount: bucket.count,
+      constituentEdgeTypes: Array.from(bucket.types),
+    };
+
+    const sourceParent = containmentMap.get(bucket.source);
+    const targetParent = containmentMap.get(bucket.target);
+    if (sourceParent && targetParent && sourceParent !== targetParent) {
+      metadata.crossPackage = true;
+    }
+
     result.push({
       id: createEdgeId(bucket.source, bucket.target, AGGREGATED_TYPE),
       source: bucket.source,
@@ -44,10 +55,7 @@ function aggregateToLevel(
       type: AGGREGATED_TYPE,
       level: targetLevel,
       weight: bucket.count,
-      metadata: {
-        constituentEdgeCount: bucket.count,
-        constituentEdgeTypes: Array.from(bucket.types),
-      },
+      metadata,
     });
   }
 

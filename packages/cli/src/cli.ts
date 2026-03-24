@@ -9,8 +9,8 @@ export function createCli(): Command {
   const program = new Command();
 
   program
-    .name('lpc')
-    .description('llmProjectContextualizer -- Codebase Knowledge Graph Tool')
+    .name('sniffo')
+    .description('sniffo -- Codebase Knowledge Graph Tool')
     .version('0.0.1');
 
   program
@@ -58,7 +58,7 @@ export function createCli(): Command {
 
   program
     .command('uninstall-hook')
-    .description('Remove contextualizer pre-commit hook')
+    .description('Remove sniffo pre-commit hook')
     .option('-d, --dir <path>', 'Project directory', process.cwd())
     .action(async (opts: { dir: string }) => {
       await uninstallHook(opts.dir);
@@ -67,23 +67,53 @@ export function createCli(): Command {
 
   program
     .command('init')
-    .description('Initialize contextualizer in the current project')
+    .description('Initialize sniffo and run first analysis')
     .option('-d, --dir <path>', 'Project directory', process.cwd())
     .option('--no-hooks', 'Skip pre-commit hook installation')
-    .action(async (opts: { dir: string; hooks: boolean }) => {
-      await runInit(opts.dir, { noHooks: !opts.hooks });
-      console.log('Contextualizer initialized.');
+    .option('--no-analyze', 'Skip initial analysis')
+    .option('-q, --quiet', 'Suppress output')
+    .action(async (opts: { dir: string; hooks: boolean; analyze: boolean; quiet: boolean }) => {
+      await runInit(opts.dir, { noHooks: !opts.hooks, noAnalyze: !opts.analyze, quiet: opts.quiet });
+      if (!opts.quiet) {
+        console.log('Sniffo initialized.');
+      }
+    });
+
+  program
+    .command('doctor')
+    .description('Check if sniffo is properly set up')
+    .option('-d, --dir <path>', 'Project directory', process.cwd())
+    .action(async (opts) => {
+      const { runDoctor } = await import('./commands/doctor.js');
+      const result = await runDoctor(opts.dir);
+      for (const check of result.checks) {
+        const icon = check.status === 'pass' ? '[OK]' : check.status === 'warn' ? '[!!]' : '[FAIL]';
+        console.log(`  ${icon} ${check.label}: ${check.message}`);
+      }
+      if (!result.healthy) {
+        process.exitCode = 1;
+      }
     });
 
   program
     .command('serve')
-    .description('Start HTTP API server')
+    .description('Start HTTP API server with web UI')
     .option('-d, --dir <path>', 'Project directory', process.cwd())
     .option('-p, --port <number>', 'Port number', '3100')
     .option('--host <addr>', 'Bind address', '127.0.0.1')
+    .option('-o, --open', 'Open browser automatically')
     .action(async (opts) => {
       const { runServe } = await import('./commands/serve.js');
-      await runServe(opts.dir, { port: parseInt(opts.port), host: opts.host });
+      await runServe(opts.dir, { port: parseInt(opts.port), host: opts.host, open: opts.open });
+    });
+
+  program
+    .command('setup-plugin')
+    .description('Configure Claude Code plugin for this project')
+    .option('-d, --dir <path>', 'Project directory', process.cwd())
+    .action(async (opts) => {
+      const { runSetupPlugin } = await import('./commands/setup-plugin.js');
+      await runSetupPlugin(opts.dir);
     });
 
   return program;

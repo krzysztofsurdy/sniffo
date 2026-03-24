@@ -1,9 +1,9 @@
 import { join } from 'node:path';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { getStalenessReport, type StalenessReport } from '@contextualizer/analyzer';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { getStalenessReport, type StalenessReport } from '@sniffo/analyzer';
 
 export async function runStatus(projectDir: string): Promise<StalenessReport> {
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, createNodeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, createNodeId } from '@sniffo/core';
 import { getStalenessReport, type StalenessReport } from '../staleness-reporter.js';
 
 describe('getStalenessReport', () => {

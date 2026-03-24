@@ -8,6 +8,7 @@ export const NODE_COLORS: Record<string, string> = {
   PROPERTY: '#64748B',
   CONSTANT: '#64748B',
   MODULE: '#A78BFA',
+  PACKAGE: '#F97316',
   SYSTEM: '#EC4899',
 };
 

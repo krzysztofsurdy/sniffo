@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { GraphLevel } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { GraphLevel } from '@sniffo/core';
 
 const LEVEL_MAP: Record<string, GraphLevel> = {
   system: GraphLevel.SYSTEM,

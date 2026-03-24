@@ -1,13 +1,13 @@
 import { join } from 'node:path';
-import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@contextualizer/analyzer';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import type { AnalysisResult } from '@contextualizer/core';
+import { AnalysisPipeline, ParserRegistry, PhpParser, TypeScriptParser } from '@sniffo/analyzer';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import type { AnalysisResult } from '@sniffo/core';
 import { loadConfig } from '../config/loader.js';
 
 export async function runUpdate(projectDir: string, files?: string[]): Promise<AnalysisResult> {
   const config = loadConfig(projectDir);
 
-  const dbPath = join(projectDir, '.contextualizer', 'graph.duckdb');
+  const dbPath = join(projectDir, '.sniffo', 'graph.duckdb');
   const store = new DuckDBGraphStore(dbPath);
   await store.initialize();
 
@@ -22,7 +22,21 @@ export async function runUpdate(projectDir: string, files?: string[]): Promise<A
     includePatterns: config.include,
     excludePatterns: config.exclude,
     files,
+    onProgress: (event) => {
+      if (event.phase === 'discovery') {
+        process.stdout.write(`\rDiscovered ${event.total} files...`);
+      } else if (event.phase === 'parsing') {
+        process.stdout.write(`\rParsing [${event.current}/${event.total}] ${event.file ?? ''}`.padEnd(80).slice(0, 80));
+      } else if (event.phase === 'resolution') {
+        process.stdout.write(`\rResolving references...`.padEnd(80));
+      } else if (event.phase === 'hierarchy') {
+        process.stdout.write(`\rBuilding hierarchy...`.padEnd(80));
+      } else if (event.phase === 'aggregation') {
+        process.stdout.write(`\rAggregating edges...`.padEnd(80));
+      }
+    },
   });
+  process.stdout.write('\r' + ' '.repeat(80) + '\r');
 
   registry.dispose();
   await store.close();

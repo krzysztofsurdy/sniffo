@@ -46,7 +46,7 @@ export function buildGraphology(
       label: node.shortName,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: node.type === 'SYSTEM' ? 12 : node.type === 'MODULE' ? 8 : 5,
+      size: node.type === 'SYSTEM' ? 12 : node.type === 'PACKAGE' ? 10 : node.type === 'MODULE' ? 8 : 5,
       color,
       nodeType: node.type,
       qualifiedName: node.qualifiedName,
@@ -63,7 +63,7 @@ export function buildGraphology(
     try {
       graph.addEdge(edge.source, edge.target, {
         label: edge.type,
-        color: getEdgeColor(edge.type),
+        color: edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type),
         size: Math.max(1, edge.weight),
         edgeType: edge.type,
       });
