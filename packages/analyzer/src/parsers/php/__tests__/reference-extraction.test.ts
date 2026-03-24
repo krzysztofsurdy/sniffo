@@ -93,6 +93,74 @@ describe('PHP Reference Extraction', () => {
     });
   });
 
+  describe('method calls', () => {
+    it('detects method calls on injected dependencies', async () => {
+      const source = readFileSync(join(FIXTURES, 'Service/UserService.php'), 'utf-8');
+      const result = await parser.parse('src/Service/UserService.php', source);
+
+      const callRefs = result.references.filter((r) => r.kind === ReferenceKind.Calls);
+      expect(callRefs.length).toBeGreaterThan(0);
+      const methodNames = callRefs.map((r) => r.targetName);
+      expect(methodNames).toContain('findAll');
+      expect(methodNames).toContain('find');
+    });
+
+    it('detects static method calls', async () => {
+      const source = `<?php
+namespace App\\Service;
+
+class Foo {
+    public function bar(): void {
+        Logger::info('test');
+        self::helper();
+    }
+}`;
+      const result = await parser.parse('src/Service/Foo.php', source);
+
+      const callRefs = result.references.filter((r) => r.kind === ReferenceKind.Calls);
+      const targets = callRefs.map((r) => r.targetName);
+      expect(targets).toContain('info');
+      expect(targets).toContain('helper');
+    });
+
+    it('detects new object instantiation', async () => {
+      const source = `<?php
+namespace App\\Service;
+
+use App\\Model\\User;
+
+class Factory {
+    public function create(): User {
+        return new User('test');
+    }
+}`;
+      const result = await parser.parse('src/Service/Factory.php', source);
+
+      const instantiateRefs = result.references.filter((r) => r.kind === ReferenceKind.Instantiates);
+      expect(instantiateRefs.length).toBeGreaterThan(0);
+      expect(instantiateRefs[0].targetName).toBe('User');
+    });
+
+    it('detects function calls', async () => {
+      const source = `<?php
+namespace App\\Service;
+
+class Bar {
+    public function baz(): void {
+        array_map(fn(\$x) => \$x, []);
+        \$this->doSomething();
+    }
+
+    private function doSomething(): void {}
+}`;
+      const result = await parser.parse('src/Service/Bar.php', source);
+
+      const callRefs = result.references.filter((r) => r.kind === ReferenceKind.Calls);
+      const targets = callRefs.map((r) => r.targetName);
+      expect(targets).toContain('doSomething');
+    });
+  });
+
   describe('imports', () => {
     it('extracts all use statements', async () => {
       const source = readFileSync(join(FIXTURES, 'Model/User.php'), 'utf-8');

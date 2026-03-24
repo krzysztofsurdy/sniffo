@@ -326,10 +326,12 @@ function visitFunction(node: Node, ctx: VisitorContext): void {
   const nameNode = findChildByType(node, 'name');
   if (!nameNode) return;
 
+  const funcFqn = fqn(ctx, nameNode.text);
+
   ctx.symbols.push({
     kind: SymbolKind.Function,
     name: nameNode.text,
-    fqn: fqn(ctx, nameNode.text),
+    fqn: funcFqn,
     filePath: ctx.filePath,
     startLine: node.startPosition.row + 1,
     endLine: node.endPosition.row + 1,
@@ -338,6 +340,11 @@ function visitFunction(node: Node, ctx: VisitorContext): void {
     modifiers: [],
     metadata: {},
   });
+
+  const body = findChildByType(node, 'compound_statement');
+  if (body) {
+    extractCallsFromBody(body, funcFqn, ctx);
+  }
 }
 
 function visitMethod(node: Node, ctx: VisitorContext): void {
@@ -347,10 +354,12 @@ function visitMethod(node: Node, ctx: VisitorContext): void {
   const modifiers = extractModifiers(node);
   if (modifiers.length === 0) modifiers.push(Modifier.Public);
 
+  const methodFqn = fqn(ctx, nameNode.text);
+
   ctx.symbols.push({
     kind: SymbolKind.Method,
     name: nameNode.text,
-    fqn: fqn(ctx, nameNode.text),
+    fqn: methodFqn,
     filePath: ctx.filePath,
     startLine: node.startPosition.row + 1,
     endLine: node.endPosition.row + 1,
@@ -365,6 +374,11 @@ function visitMethod(node: Node, ctx: VisitorContext): void {
     if (params) {
       visitConstructorParams(params, ctx);
     }
+  }
+
+  const body = findChildByType(node, 'compound_statement');
+  if (body) {
+    extractCallsFromBody(body, methodFqn, ctx);
   }
 }
 
@@ -472,6 +486,73 @@ function visitTraitUse(node: Node, ctx: VisitorContext): void {
       context: `use ${n.text}`,
     });
   }
+}
+
+function extractCallsFromBody(body: Node, sourceFqn: string, ctx: VisitorContext): void {
+  const walk = (node: Node) => {
+    switch (node.type) {
+      case 'member_call_expression': {
+        // $this->method() or $obj->method()
+        const methodName = findChildByType(node, 'name');
+        if (methodName) {
+          ctx.references.push({
+            kind: ReferenceKind.Calls,
+            sourceSymbolFqn: sourceFqn,
+            targetName: methodName.text,
+            targetFqn: null,
+            filePath: ctx.filePath,
+            line: methodName.startPosition.row + 1,
+            column: methodName.startPosition.column,
+            context: `calls ${methodName.text}`,
+          });
+        }
+        break;
+      }
+      case 'scoped_call_expression': {
+        // ClassName::method() or self::method() or static::method()
+        // Structure: [scope_name, ::, method_name, arguments]
+        const names = findChildrenByType(node, 'name');
+        const methodName = names.length > 1 ? names[names.length - 1] : names[0];
+        if (methodName) {
+          ctx.references.push({
+            kind: ReferenceKind.Calls,
+            sourceSymbolFqn: sourceFqn,
+            targetName: methodName.text,
+            targetFqn: null,
+            filePath: ctx.filePath,
+            line: methodName.startPosition.row + 1,
+            column: methodName.startPosition.column,
+            context: `calls ${methodName.text}`,
+          });
+        }
+        break;
+      }
+      case 'object_creation_expression': {
+        // new ClassName()
+        const className = findChildByType(node, 'name') || findChildByType(node, 'qualified_name');
+        if (className && className.text !== 'static' && className.text !== 'self') {
+          ctx.references.push({
+            kind: ReferenceKind.Instantiates,
+            sourceSymbolFqn: sourceFqn,
+            targetName: className.text,
+            targetFqn: null,
+            filePath: ctx.filePath,
+            line: className.startPosition.row + 1,
+            column: className.startPosition.column,
+            context: `new ${className.text}`,
+          });
+        }
+        break;
+      }
+    }
+
+    for (let i = 0; i < node.childCount; i++) {
+      const child = node.child(i);
+      if (child) walk(child);
+    }
+  };
+
+  walk(body);
 }
 
 function isScalarType(name: string): boolean {
