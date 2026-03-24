@@ -93,8 +93,13 @@ export interface WorkspaceData {
 export interface SavedView {
   id: string;
   name: string;
-  nodeIds: string[];
   createdAt: string;
+  rootNodeId: string;
+  rootLabel: string;
+  edgeTypes: string[];
+  depth: number;
+  direction: 'outgoing' | 'incoming' | 'both';
+  nodeIds?: string[];
 }
 
 export interface ApiResponse<T> {

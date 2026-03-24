@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { SavedView } from '../api/types';
 
 export interface Breadcrumb {
   nodeId: string | null;
@@ -13,6 +14,10 @@ export interface NavigationState {
   drillDown: (nodeId: string, label: string, level: string) => void;
   drillUp: (index: number) => void;
   resetNavigation: () => void;
+
+  activeView: SavedView | null;
+  activateView: (view: SavedView) => void;
+  clearView: () => void;
 
   blastRadiusActive: boolean;
   blastRadiusDepth: number;
@@ -38,6 +43,15 @@ export const useNavigationStore = create<NavigationState>((set) => ({
 
   resetNavigation: () =>
     set({ breadcrumbs: [{ nodeId: null, label: 'Root', level: 'component' }], drillParentId: null }),
+
+  activeView: null,
+  activateView: (view) =>
+    set({
+      activeView: view,
+      drillParentId: null,
+      breadcrumbs: [{ nodeId: null, label: 'Root', level: 'component' }],
+    }),
+  clearView: () => set({ activeView: null }),
 
   blastRadiusActive: false,
   blastRadiusDepth: 2,

@@ -73,6 +73,19 @@ export function useRefresh() {
   });
 }
 
+export function useTrace(
+  nodeId: string | null,
+  edgeTypes: string[],
+  depth: number,
+  direction: string,
+) {
+  return useQuery({
+    queryKey: ['trace', nodeId, edgeTypes.join(','), depth, direction],
+    queryFn: () => api.getTrace(nodeId!, edgeTypes, depth, direction),
+    enabled: !!nodeId,
+  });
+}
+
 export function useViews() {
   return useQuery({ queryKey: ['views'], queryFn: () => api.getViews() });
 }
@@ -80,7 +93,14 @@ export function useViews() {
 export function useCreateView() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, nodeIds }: { name: string; nodeIds: string[] }) => api.createView(name, nodeIds),
+    mutationFn: (params: {
+      name: string;
+      rootNodeId: string;
+      rootLabel: string;
+      edgeTypes: string[];
+      depth: number;
+      direction: string;
+    }) => api.createView(params),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['views'] }),
   });
 }

@@ -1,4 +1,4 @@
-import type { ApiResponse, GraphData, GraphNode, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData, SavedView } from './types';
+import type { ApiResponse, GraphData, GraphNode, GraphEdge, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData, SavedView } from './types';
 
 const BASE_URL = '/api';
 
@@ -31,12 +31,30 @@ export const api = {
   getWorkspaces: () => fetchJson<WorkspaceData | null>('/workspaces'),
 
   getViews: () => fetchJson<SavedView[]>('/views'),
-  createView: (name: string, nodeIds: string[]) =>
+  createView: (params: {
+    name: string;
+    rootNodeId: string;
+    rootLabel: string;
+    edgeTypes: string[];
+    depth: number;
+    direction: string;
+  }) =>
     fetchJson<SavedView>('/views', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, nodeIds }),
+      body: JSON.stringify(params),
     }),
   deleteView: (id: string) =>
     fetchJson<void>(`/views/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  getTrace: (nodeId: string, edgeTypes: string[], depth: number, direction: string) => {
+    const params = new URLSearchParams({
+      edgeTypes: edgeTypes.join(','),
+      depth: String(depth),
+      direction,
+    });
+    return fetchJson<{ rootId: string; nodes: GraphNode[]; edges: GraphEdge[] }>(
+      `/trace/${encodeURIComponent(nodeId)}?${params}`,
+    );
+  },
 };

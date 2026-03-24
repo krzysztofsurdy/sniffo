@@ -5,7 +5,8 @@ export interface UIState {
   setCurrentLevel: (level: string) => void;
 
   selectedNodeId: string | null;
-  selectNode: (id: string | null) => void;
+  selectedNodeLabel: string | null;
+  selectNode: (id: string | null, label?: string) => void;
 
   selectedEdgeId: string | null;
   selectEdge: (id: string | null) => void;
@@ -44,7 +45,8 @@ export const useUIStore = create<UIState>((set) => ({
   setCurrentLevel: (level) => set({ currentLevel: level, selectedNodeId: null, selectedEdgeId: null }),
 
   selectedNodeId: null,
-  selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
+  selectedNodeLabel: null,
+  selectNode: (id, label) => set({ selectedNodeId: id, selectedNodeLabel: label ?? null, selectedEdgeId: null }),
 
   selectedEdgeId: null,
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),

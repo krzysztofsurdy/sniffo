@@ -1,39 +1,53 @@
 ---
 name: views
-description: Create and manage saved views -- curated collections of related symbols representing business flows, features, or architectural slices. Use when the user wants to map out a flow, save a set of related classes, or revisit a previously saved view.
+description: Create and manage landscape views -- query-based traces through the dependency graph starting from a root symbol. Use when the user wants to map out a flow, trace dependencies, or visualize how a feature connects.
 ---
 
-# Saved Views
+# Landscape Views
 
-Saved views are curated collections of symbols that represent a business flow, feature, or architectural concern (e.g., "Payment Flow", "Coupon Logic", "Auth System").
+Landscape views are query-based traces through the dependency graph. Instead of manually picking nodes, you define a starting point and the view automatically traces all connected symbols.
 
 ## Creating a view
 
-1. Use `list_views` to see existing views
-2. Ask the user what flow or feature they want to map
-3. Use `search_symbols` to find relevant classes, interfaces, and functions
-4. Use `create_view` with the view name and the symbol names to save it
+1. Use `search_symbols` to find the root symbol (e.g., "PaymentController")
+2. Use `create_view` with the root symbol and trace parameters
 
 Example:
 ```
 create_view({
   name: "Payment Flow",
-  symbols: ["PaymentController", "PaymentService", "StripeGateway", "Invoice", "PaymentEvent"]
+  rootSymbol: "PaymentController",
+  edgeTypes: ["CALLS", "INJECTS"],
+  depth: 4,
+  direction: "outgoing"
 })
 ```
 
-The tool will search for each symbol and collect all matches into the view.
+This traces outgoing CALLS and INJECTS from PaymentController up to 4 levels deep.
 
-## Listing views
+## Direction options
 
-Use `list_views` to show all saved views with their node counts.
+- **outgoing**: "What does this call?" -- traces forward through the flow
+- **incoming**: "What calls this?" -- traces backwards to find dependents
+- **both**: Full neighborhood in both directions
 
-## Deleting a view
+## Common patterns
 
-Use `delete_view` with the view ID (shown in `list_views` output).
+| View | Root | Direction | Edge Types | Depth |
+|------|------|-----------|------------|-------|
+| Feature flow | Controller | outgoing | CALLS, INJECTS | 4 |
+| Impact analysis | Service | incoming | CALLS, DEPENDS_ON | 3 |
+| Inheritance tree | Interface | incoming | IMPLEMENTS, EXTENDS | 5 |
+| Full context | Any class | both | CALLS, INJECTS, IMPORTS | 2 |
+
+## Listing and deleting views
+
+- `list_views` -- shows all saved views with their query parameters
+- `delete_view` -- removes a view by ID
 
 ## Tips
 
-- Be thorough when searching -- include controllers, services, repositories, events, and DTOs
-- Ask the user if they want to include related interfaces or abstract classes
+- Start with depth 3 and increase if the trace looks incomplete
+- Use "outgoing" for "how does this work?" questions
+- Use "incoming" for "what breaks if I change this?" questions
 - Views are stored in `.sniffo/views.json` and visible in the web UI

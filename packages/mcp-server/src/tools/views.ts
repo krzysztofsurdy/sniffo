@@ -3,14 +3,19 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GraphStore } from '@sniffo/storage';
-import { searchSymbols } from '@sniffo/analyzer';
+import { searchSymbols, traceFlow } from '@sniffo/analyzer';
 import type { NodeType } from '@sniffo/core';
 
 interface SavedView {
   id: string;
   name: string;
-  nodeIds: string[];
   createdAt: string;
+  rootNodeId: string;
+  rootLabel: string;
+  edgeTypes: string[];
+  depth: number;
+  direction: 'outgoing' | 'incoming' | 'both';
+  nodeIds?: string[];
 }
 
 function getViewsPath(projectDir: string): string {
@@ -34,67 +39,72 @@ function saveViews(projectDir: string, views: SavedView[]): void {
 export function registerViewsTools(server: McpServer, store: GraphStore, projectDir: string): void {
   server.tool(
     'list_views',
-    'List all saved views (curated collections of related symbols)',
+    'List all saved landscape views (query-based traces through the dependency graph)',
     {},
     async () => {
       const views = loadViews(projectDir);
       if (views.length === 0) {
         return { content: [{ type: 'text' as const, text: 'No saved views.' }] };
       }
-      const lines = views.map((v) => `${v.name} (${v.nodeIds.length} nodes) [${v.id}]`);
+      const lines = views.map((v) =>
+        `${v.name} (${v.direction ?? 'legacy'}, depth=${v.depth ?? '?'}, edges=${(v.edgeTypes ?? []).join(',')}) [${v.id}]`,
+      );
       return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
     },
   );
 
   server.tool(
     'create_view',
-    'Create a saved view from symbol names. Searches for each symbol and collects matching node IDs into a named view.',
+    'Create a landscape view that traces a flow from a root symbol',
     {
-      name: z.string().describe('Name for the view (e.g., "Payment Flow", "Auth System")'),
-      symbols: z.array(z.string()).describe('Symbol names or search queries to include in the view'),
+      name: z.string().describe('Name for the view (e.g., "Payment Flow")'),
+      rootSymbol: z.string().describe('Name of the root symbol to trace from'),
+      edgeTypes: z.array(z.string()).optional().describe('Edge types to follow (default: CALLS, INJECTS, IMPORTS)'),
+      depth: z.number().optional().describe('Max traversal depth (default: 3, max: 10)'),
+      direction: z.enum(['outgoing', 'incoming', 'both']).optional().describe('Traversal direction (default: outgoing)'),
     },
-    async ({ name, symbols }) => {
-      const nodeIds = new Set<string>();
-      const matched: string[] = [];
-      const missed: string[] = [];
-
-      for (const query of symbols) {
-        const results = await searchSymbols(store, query);
-        if (results.length > 0) {
-          for (const r of results) {
-            nodeIds.add(r.id);
-          }
-          matched.push(`${query} (${results.length} matches)`);
-        } else {
-          missed.push(query);
-        }
+    async ({ name, rootSymbol, edgeTypes, depth, direction }) => {
+      const searchResults = await searchSymbols(store, rootSymbol);
+      if (searchResults.length === 0) {
+        return { content: [{ type: 'text' as const, text: `No symbol found matching "${rootSymbol}"` }] };
       }
 
-      if (nodeIds.size === 0) {
-        return { content: [{ type: 'text' as const, text: 'No symbols found for any of the queries.' }] };
-      }
+      const rootNode = searchResults[0];
+      const resolvedEdgeTypes = edgeTypes ?? ['CALLS', 'INJECTS', 'IMPORTS'];
+      const resolvedDepth = Math.min(10, Math.max(1, depth ?? 3));
+      const resolvedDirection = direction ?? 'outgoing';
+
+      const traceResult = await traceFlow(store, rootNode.id, {
+        edgeTypes: resolvedEdgeTypes as any[],
+        depth: resolvedDepth,
+        direction: resolvedDirection,
+      });
 
       const views = loadViews(projectDir);
-      const view: SavedView = {
+      const newView: SavedView = {
         id: crypto.randomUUID(),
         name,
-        nodeIds: Array.from(nodeIds),
+        rootNodeId: rootNode.id,
+        rootLabel: rootNode.shortName,
+        edgeTypes: resolvedEdgeTypes,
+        depth: resolvedDepth,
+        direction: resolvedDirection,
         createdAt: new Date().toISOString(),
       };
-      views.push(view);
+      views.push(newView);
       saveViews(projectDir, views);
 
-      const lines = [
-        `View "${name}" created with ${nodeIds.size} nodes.`,
-        '',
-        'Matched:',
-        ...matched.map((m) => `  ${m}`),
-      ];
-      if (missed.length > 0) {
-        lines.push('', 'Not found:', ...missed.map((m) => `  ${m}`));
-      }
-
-      return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+      const nodeNames = traceResult.nodes.map((n) => n.shortName).join(', ');
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Created view "${name}" (${traceResult.nodes.length} nodes, ${traceResult.edges.length} edges)\n` +
+                `Root: ${rootNode.shortName}\n` +
+                `Direction: ${resolvedDirection}, Depth: ${resolvedDepth}\n` +
+                `Edge types: ${resolvedEdgeTypes.join(', ')}\n` +
+                `Nodes: ${nodeNames}`,
+        }],
+      };
     },
   );
 

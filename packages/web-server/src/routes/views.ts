@@ -5,8 +5,13 @@ import type { FastifyInstance } from 'fastify';
 interface SavedView {
   id: string;
   name: string;
-  nodeIds: string[];
   createdAt: string;
+  rootNodeId: string;
+  rootLabel: string;
+  edgeTypes: string[];
+  depth: number;
+  direction: 'outgoing' | 'incoming' | 'both';
+  nodeIds?: string[];
 }
 
 function getViewsPath(projectDir: string): string {
@@ -32,14 +37,27 @@ export function registerViewsRoutes(app: FastifyInstance, projectDir: string): v
     return loadViews(projectDir);
   });
 
-  app.post<{ Body: { name: string; nodeIds: string[] } }>('/api/views', async (request) => {
-    const { name, nodeIds } = request.body;
+  app.post<{
+    Body: {
+      name: string;
+      rootNodeId: string;
+      rootLabel: string;
+      edgeTypes: string[];
+      depth: number;
+      direction: 'outgoing' | 'incoming' | 'both';
+    };
+  }>('/api/views', async (request) => {
+    const { name, rootNodeId, rootLabel, edgeTypes, depth, direction } = request.body;
     const views = loadViews(projectDir);
     const view: SavedView = {
       id: crypto.randomUUID(),
       name,
-      nodeIds,
       createdAt: new Date().toISOString(),
+      rootNodeId,
+      rootLabel,
+      edgeTypes,
+      depth,
+      direction,
     };
     views.push(view);
     saveViews(projectDir, views);

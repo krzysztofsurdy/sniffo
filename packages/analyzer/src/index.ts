@@ -14,4 +14,5 @@ export type { ReferenceResult, DependencyResult, DependentResult } from './query
 export { findChildren, type ChildrenResult } from './query/children-query.js';
 export { computeBlastRadius, type BlastRadiusResult, type BlastRadiusNode } from './query/blast-radius.js';
 export { detectCycles } from './query/cycle-detector.js';
+export { traceFlow, type TraceFlowOptions, type TraceFlowResult } from './query/trace-flow.js';
 export { detectWorkspaces, type WorkspaceInfo, type WorkspacePackage } from './pipeline/workspace-detector.js';

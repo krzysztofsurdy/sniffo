@@ -11,6 +11,7 @@ import { registerBlastRadiusRoutes } from './routes/blast-radius.js';
 import { registerCyclesRoutes } from './routes/cycles.js';
 import { registerWorkspaceRoutes } from './routes/workspaces.js';
 import { registerViewsRoutes } from './routes/views.js';
+import { registerTraceRoutes } from './routes/trace.js';
 
 export interface ServerOptions {
   store: GraphStore;
@@ -36,6 +37,7 @@ export async function createServer(options: ServerOptions) {
   registerCyclesRoutes(app, store);
   registerWorkspaceRoutes(app, projectDir);
   registerViewsRoutes(app, projectDir);
+  registerTraceRoutes(app, store);
 
   if (options.staticDir) {
     const fastifyStatic = await import('@fastify/static');

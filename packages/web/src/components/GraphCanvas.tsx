@@ -9,7 +9,7 @@ import {
 } from '@react-sigma/core';
 import '@react-sigma/core/lib/style.css';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import { useGraphData, useChildren, useBlastRadius } from '../api/hooks';
+import { useGraphData, useChildren, useBlastRadius, useTrace } from '../api/hooks';
 import { useUIStore, useNavigationStore } from '../store';
 import { buildGraphology } from '../lib/graph-builder';
 import type { GraphData } from '../api/types';
@@ -34,10 +34,12 @@ function GraphEvents() {
   useEffect(() => {
     registerEvents({
       clickNode: ({ node, event }) => {
+        const graph = sigma.getGraph();
+        const label = graph.getNodeAttribute(node, 'label') ?? node;
         if (event.original.shiftKey) {
           toggleNodeSelection(node);
         } else {
-          selectNode(node);
+          selectNode(node, label);
         }
       },
       clickStage: () => selectNode(null),
@@ -289,15 +291,29 @@ export default function GraphCanvas() {
   const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
   const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
   const drillParentId = useNavigationStore((s) => s.drillParentId);
+  const activeView = useNavigationStore((s) => s.activeView);
   const layoutRef = useRef<FA2Layout | null>(null);
 
   const { data: levelData, isLoading: levelLoading } = useGraphData(currentLevel);
   const { data: childrenData, isLoading: childrenLoading } = useChildren(drillParentId);
+  const { data: traceData, isLoading: traceLoading } = useTrace(
+    activeView?.rootNodeId ?? null,
+    activeView?.edgeTypes ?? [],
+    activeView?.depth ?? 3,
+    activeView?.direction ?? 'outgoing',
+  );
 
-  const isLoading = drillParentId ? childrenLoading : levelLoading;
-  const graphData = drillParentId && childrenData
-    ? { nodes: childrenData.children, edges: childrenData.edges }
-    : levelData;
+  const isLoading = activeView
+    ? traceLoading
+    : drillParentId
+      ? childrenLoading
+      : levelLoading;
+
+  const graphData = activeView && traceData
+    ? { nodes: traceData.nodes, edges: traceData.edges }
+    : drillParentId && childrenData
+      ? { nodes: childrenData.children, edges: childrenData.edges }
+      : levelData;
 
   if (isLoading || !graphData) {
     return (
