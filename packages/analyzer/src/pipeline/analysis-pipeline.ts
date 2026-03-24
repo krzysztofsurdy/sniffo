@@ -133,86 +133,100 @@ export class AnalysisPipeline {
       }
     }
 
+    // Phase 1: Parse files in parallel batches
+    const BATCH_SIZE = 20;
     const parsedFiles: ParsedFile[] = [];
+    const parseResults: Array<{ parsed: ParsedFile; fileChange: typeof filesToProcess[0] }> = [];
 
-    for (let fileIndex = 0; fileIndex < filesToProcess.length; fileIndex++) {
-      const fileChange = filesToProcess[fileIndex];
-      options.onProgress?.({ phase: 'parsing', current: fileIndex + 1, total: filesToProcess.length, file: fileChange.file.relativePath });
+    for (let batchStart = 0; batchStart < filesToProcess.length; batchStart += BATCH_SIZE) {
+      const batch = filesToProcess.slice(batchStart, batchStart + BATCH_SIZE);
+      const batchPromises = batch.map(async (fileChange) => {
+        const parser = this.parserRegistry.getParserForFile(fileChange.file.absolutePath);
+        if (!parser) return null;
 
-      const parser = this.parserRegistry.getParserForFile(fileChange.file.absolutePath);
-      if (!parser) {
-        continue;
+        try {
+          const source = await readFile(fileChange.file.absolutePath, 'utf-8');
+          const parsed = await parser.parse(fileChange.file.relativePath, source);
+          return { parsed, fileChange };
+        } catch (err) {
+          filesFailed++;
+          errors.push({
+            phase: 'parse',
+            filePath: fileChange.file.relativePath,
+            message: err instanceof Error ? err.message : String(err),
+            recoverable: true,
+          });
+          return null;
+        }
+      });
+
+      const results = await Promise.all(batchPromises);
+      for (const result of results) {
+        if (result) parseResults.push(result);
       }
 
-      try {
-        const source = await readFile(fileChange.file.absolutePath, 'utf-8');
-        const parsed = await parser.parse(fileChange.file.relativePath, source);
-        parsedFiles.push(parsed);
+      options.onProgress?.({ phase: 'parsing', current: Math.min(batchStart + BATCH_SIZE, filesToProcess.length), total: filesToProcess.length });
+    }
 
-        await this.store.removeNodesByFilePath(fileChange.file.relativePath);
+    // Phase 2: Store nodes/edges sequentially (DuckDB single-writer)
+    const now = new Date().toISOString();
+    for (const { parsed, fileChange } of parseResults) {
+      parsedFiles.push(parsed);
 
-        const now = new Date().toISOString();
-        for (const sym of parsed.symbols) {
-          const nodeType = SYMBOL_KIND_TO_NODE_TYPE[sym.kind];
-          if (!nodeType) continue;
+      await this.store.removeNodesByFilePath(fileChange.file.relativePath);
 
-          const level = CODE_LEVEL_KINDS.has(sym.kind)
-            ? GraphLevel.CODE
-            : GraphLevel.COMPONENT;
+      for (const sym of parsed.symbols) {
+        const nodeType = SYMBOL_KIND_TO_NODE_TYPE[sym.kind];
+        if (!nodeType) continue;
 
-          const nodeId = createNodeId(nodeType, sym.fqn);
+        const level = CODE_LEVEL_KINDS.has(sym.kind)
+          ? GraphLevel.CODE
+          : GraphLevel.COMPONENT;
 
-          const node: StoredNode = {
-            id: nodeId,
-            type: nodeType,
-            level,
-            qualifiedName: sym.fqn,
-            shortName: sym.name,
-            filePath: fileChange.file.relativePath,
-            startLine: sym.startLine,
-            endLine: sym.endLine,
-            contentHash: parsed.contentHash,
-            isStale: false,
-            lastAnalyzedAt: now,
-            metadata: sym.metadata,
-          };
+        const nodeId = createNodeId(nodeType, sym.fqn);
 
-          await this.store.upsertNode(node);
-          symbolsFound++;
+        const node: StoredNode = {
+          id: nodeId,
+          type: nodeType,
+          level,
+          qualifiedName: sym.fqn,
+          shortName: sym.name,
+          filePath: fileChange.file.relativePath,
+          startLine: sym.startLine,
+          endLine: sym.endLine,
+          contentHash: parsed.contentHash,
+          isStale: false,
+          lastAnalyzedAt: now,
+          metadata: sym.metadata,
+        };
 
-          if (CODE_LEVEL_KINDS.has(sym.kind)) {
-            const parentFqn = extractParentFqn(sym.fqn);
-            if (parentFqn) {
-              const parentNodeType = this.guessParentNodeType(parsed, parentFqn);
-              const parentNodeId = createNodeId(parentNodeType, parentFqn);
-              const containsEdge: StoredEdge = {
-                id: createEdgeId(parentNodeId, nodeId, EdgeType.CONTAINS),
-                source: parentNodeId,
-                target: nodeId,
-                type: EdgeType.CONTAINS,
-                level: GraphLevel.COMPONENT,
-                weight: 1.0,
-                metadata: {},
-              };
-              await this.store.upsertEdge(containsEdge);
-            }
+        await this.store.upsertNode(node);
+        symbolsFound++;
+
+        if (CODE_LEVEL_KINDS.has(sym.kind)) {
+          const parentFqn = extractParentFqn(sym.fqn);
+          if (parentFqn) {
+            const parentNodeType = this.guessParentNodeType(parsed, parentFqn);
+            const parentNodeId = createNodeId(parentNodeType, parentFqn);
+            const containsEdge: StoredEdge = {
+              id: createEdgeId(parentNodeId, nodeId, EdgeType.CONTAINS),
+              source: parentNodeId,
+              target: nodeId,
+              type: EdgeType.CONTAINS,
+              level: GraphLevel.COMPONENT,
+              weight: 1.0,
+              metadata: {},
+            };
+            await this.store.upsertEdge(containsEdge);
           }
         }
-
-        await this.store.setFileHash(
-          fileChange.file.relativePath,
-          fileChange.newHash,
-          fileChange.file.sizeBytes,
-        );
-      } catch (err) {
-        filesFailed++;
-        errors.push({
-          phase: 'parse',
-          filePath: fileChange.file.relativePath,
-          message: err instanceof Error ? err.message : String(err),
-          recoverable: true,
-        });
       }
+
+      await this.store.setFileHash(
+        fileChange.file.relativePath,
+        fileChange.newHash,
+        fileChange.file.sizeBytes,
+      );
     }
 
     const allNodes = await this.store.getAllNodes();
