@@ -32,3 +32,17 @@ body {
 code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
+
+.prose { color: #C4B5A5; }
+.prose h1, .prose h2, .prose h3, .prose h4 { color: #FDFCF5; margin-top: 1.5em; margin-bottom: 0.5em; }
+.prose h1 { font-size: 1.5rem; font-weight: 700; border-bottom: 1px solid #3D2E25; padding-bottom: 0.3em; }
+.prose h2 { font-size: 1.25rem; font-weight: 600; border-bottom: 1px solid #3D2E25; padding-bottom: 0.2em; }
+.prose h3 { font-size: 1.1rem; font-weight: 600; }
+.prose p { margin: 0.75em 0; line-height: 1.7; }
+.prose ul, .prose ol { margin: 0.5em 0; padding-left: 1.5em; }
+.prose li { margin: 0.25em 0; }
+.prose blockquote { border-left: 3px solid #5E4A3C; padding-left: 1em; margin: 1em 0; color: #8A7A6A; }
+.prose hr { border-color: #3D2E25; margin: 1.5em 0; }
+.prose pre { background: #1A1210; border: 1px solid #3D2E25; border-radius: 6px; padding: 1em; overflow-x: auto; margin: 1em 0; }
+.prose pre code { background: none; padding: 0; font-size: 0.85em; }
+.prose img { max-width: 100%; border-radius: 4px; }

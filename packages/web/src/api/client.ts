@@ -1,4 +1,4 @@
-import type { ApiResponse, GraphData, GraphNode, GraphEdge, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData, SavedView } from './types';
+import type { ApiResponse, GraphData, GraphNode, GraphEdge, NodeDetail, StalenessReport, AnalysisResult, ChildrenData, BlastRadiusData, CyclesData, WorkspaceData, SavedView, DocTreeNode } from './types';
 
 const BASE_URL = '/api';
 
@@ -46,6 +46,9 @@ export const api = {
     }),
   deleteView: (id: string) =>
     fetchJson<void>(`/views/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  getDocsTree: () => fetchJson<{ tree: DocTreeNode[] }>('/docs'),
+  getDocContent: (path: string) => fetchJson<{ path: string; content: string }>(`/docs/${path}`),
 
   getTrace: (nodeId: string, edgeTypes: string[], depth: number, direction: string) => {
     const params = new URLSearchParams({

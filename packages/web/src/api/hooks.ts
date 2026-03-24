@@ -86,6 +86,18 @@ export function useTrace(
   });
 }
 
+export function useDocsTree() {
+  return useQuery({ queryKey: ['docs-tree'], queryFn: () => api.getDocsTree() });
+}
+
+export function useDocContent(path: string | null) {
+  return useQuery({
+    queryKey: ['doc', path],
+    queryFn: () => api.getDocContent(path!),
+    enabled: !!path,
+  });
+}
+
 export function useViews() {
   return useQuery({ queryKey: ['views'], queryFn: () => api.getViews() });
 }

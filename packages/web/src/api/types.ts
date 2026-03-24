@@ -103,6 +103,13 @@ export interface SavedView {
   nodeIds?: string[];
 }
 
+export interface DocTreeNode {
+  name: string;
+  type: 'file' | 'directory';
+  path?: string;
+  children?: DocTreeNode[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
