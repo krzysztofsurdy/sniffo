@@ -42,6 +42,13 @@ export interface UIState {
   layoutType: string;
   setLayoutType: (type: string) => void;
 
+  spacingNodes: number;
+  spacingCenter: number;
+  spacingGroups: number;
+  setSpacingNodes: (value: number) => void;
+  setSpacingCenter: (value: number) => void;
+  setSpacingGroups: (value: number) => void;
+
   filterPanelOpen: boolean;
   toggleFilterPanel: () => void;
   detailPanelOpen: boolean;
@@ -105,6 +112,13 @@ export const useUIStore = create<UIState>((set) => ({
 
   layoutType: 'sunshine',
   setLayoutType: (type) => set({ layoutType: type }),
+
+  spacingNodes: 1.0,
+  spacingCenter: 1.0,
+  spacingGroups: 1.0,
+  setSpacingNodes: (value) => set({ spacingNodes: value }),
+  setSpacingCenter: (value) => set({ spacingCenter: value }),
+  setSpacingGroups: (value) => set({ spacingGroups: value }),
 
   hiddenNamespaces: new Set<string>(),
   toggleNamespace: (ns) =>

@@ -47,13 +47,14 @@ export function buildGraphology(
   visibleEdgeTypes: Set<string>,
   hiddenNamespaces?: Set<string>,
   layoutType: string = 'sunshine',
+  spacingNodes: number = 1.0,
+  spacingCenter: number = 1.0,
+  spacingGroups: number = 1.0,
 ): Graph {
   const graph = new Graph();
 
-  const visibleNodes = data.nodes.filter((n) =>
-    visibleNodeTypes.has(n.type) &&
-    (!hiddenNamespaces?.size || !isNamespaceHidden(n.qualifiedName, hiddenNamespaces))
-  );
+  // Use ALL nodes for layout computation
+  const visibleNodes = data.nodes;
 
   const nameCount = new Map<string, number>();
   for (const node of visibleNodes) {
@@ -63,7 +64,16 @@ export function buildGraphology(
   // Compute node positions based on layout type
   const nodePositions = new Map<string, { x: number; y: number }>();
 
-  if (layoutType === 'sunshine') {
+  if (layoutType === 'force') {
+    const spread = Math.sqrt(visibleNodes.length) * 10;
+    for (const node of visibleNodes) {
+      nodePositions.set(node.id, {
+        x: (Math.random() - 0.5) * spread,
+        y: (Math.random() - 0.5) * spread,
+      });
+    }
+  } else {
+    // Shared: build groups, edges between groups, BFS ordering
     const groupCounts = new Map<string, number>();
     for (const node of visibleNodes) {
       const key = getGroupKey(node.qualifiedName);
@@ -77,7 +87,6 @@ export function buildGraphology(
     const groupEdges = new Map<string, Map<string, number>>();
     const groupTotalEdges = new Map<string, number>();
     for (const edge of data.edges) {
-      if (!visibleEdgeTypes.has(edge.type)) continue;
       const sg = nodeGroupMap.get(edge.source);
       const tg = nodeGroupMap.get(edge.target);
       if (!sg || !tg || sg === tg) continue;
@@ -90,76 +99,231 @@ export function buildGraphology(
     }
 
     const groupKeys = Array.from(groupCounts.keys());
-    const center = groupKeys.reduce((best, k) =>
+    const centerKey = groupKeys.reduce((best, k) =>
       (groupTotalEdges.get(k) ?? 0) > (groupTotalEdges.get(best) ?? 0) ? k : best
     , groupKeys[0]);
 
-    const groupCenters = new Map<string, { cx: number; cy: number }>();
-    groupCenters.set(center, { cx: 0, cy: 0 });
-
-    const visited = new Set<string>([center]);
-    let queue: string[] = [center];
-    const ringGap = 400;
-    let ring = 0;
-
-    while (queue.length > 0) {
-      ring++;
-      const ringGroups: string[] = [];
-      const nextQueue: string[] = [];
-
-      for (const current of queue) {
+    // BFS order from most-connected group
+    const bfsOrder: string[] = [centerKey];
+    const visited = new Set<string>([centerKey]);
+    const parentMap = new Map<string, string>();
+    let bfsQueue: string[] = [centerKey];
+    while (bfsQueue.length > 0) {
+      const next: string[] = [];
+      for (const current of bfsQueue) {
         const neighbors = groupEdges.get(current);
         if (!neighbors) continue;
         for (const [neighbor] of neighbors) {
           if (visited.has(neighbor)) continue;
           visited.add(neighbor);
-          ringGroups.push(neighbor);
-          nextQueue.push(neighbor);
+          bfsOrder.push(neighbor);
+          parentMap.set(neighbor, current);
+          next.push(neighbor);
+        }
+      }
+      bfsQueue = next;
+    }
+    const unvisited = groupKeys.filter(k => !visited.has(k));
+
+    // Compute group radii (how much space each group needs)
+    const intraGap = 20 * spacingNodes;
+    const groupRadii = new Map<string, number>();
+    for (const [key, count] of groupCounts) {
+      let ringIdx = 0;
+      let placed = 1;
+      while (placed < count) {
+        ringIdx++;
+        const r = ringIdx * intraGap;
+        placed += Math.max(1, Math.floor(2 * Math.PI * r / intraGap));
+      }
+      groupRadii.set(key, Math.max(15, ringIdx * intraGap));
+    }
+
+    // Compute group centers based on layout type
+    const groupCenters = new Map<string, { cx: number; cy: number }>();
+    let disconnectedPos = { cx: 0, cy: 0 };
+
+    if (layoutType === 'sunshine') {
+      groupCenters.set(centerKey, { cx: 0, cy: 0 });
+      const baseRingGap = 30 * spacingCenter;
+      let ring = 0;
+      let qi = 1;
+      let ringStart = 1;
+      // Find ring boundaries from BFS
+      const bfsDepth = new Map<string, number>();
+      bfsDepth.set(centerKey, 0);
+      for (const key of bfsOrder) {
+        const parent = parentMap.get(key);
+        if (parent !== undefined) {
+          bfsDepth.set(key, (bfsDepth.get(parent) ?? 0) + 1);
+        }
+      }
+      const maxDepth = Math.max(0, ...bfsDepth.values());
+      let cumulativeRadius = groupRadii.get(centerKey) ?? 15;
+      for (let d = 1; d <= maxDepth; d++) {
+        const ringGroups = bfsOrder.filter(k => bfsDepth.get(k) === d);
+        const maxRadiusInRing = Math.max(...ringGroups.map(k => groupRadii.get(k) ?? 15));
+        cumulativeRadius += maxRadiusInRing + baseRingGap;
+        // Ensure ring circumference fits all groups with gaps between them
+        const totalGroupWidth = ringGroups.reduce((s, k) => {
+          const r = groupRadii.get(k) ?? 15;
+          const gap = Math.max(40, r * 0.5) * spacingGroups;
+          return s + r * 2 + gap;
+        }, 0);
+        const minRadius = totalGroupWidth / (2 * Math.PI);
+        const radius = Math.max(cumulativeRadius, minRadius);
+        cumulativeRadius = radius;
+        for (let i = 0; i < ringGroups.length; i++) {
+          const angle = (2 * Math.PI * i) / ringGroups.length - Math.PI / 2;
+          groupCenters.set(ringGroups[i], {
+            cx: radius * Math.cos(angle),
+            cy: radius * Math.sin(angle),
+          });
+        }
+        ring = d;
+      }
+      disconnectedPos = { cx: 0, cy: cumulativeRadius + baseRingGap };
+
+    } else if (layoutType === 'tree') {
+      // Natural tree: root at bottom, branches grow upward fanning out
+      const childrenOf = new Map<string, string[]>();
+      for (const key of bfsOrder) {
+        const parent = parentMap.get(key);
+        if (parent !== undefined) {
+          if (!childrenOf.has(parent)) childrenOf.set(parent, []);
+          childrenOf.get(parent)!.push(key);
         }
       }
 
-      const radius = ring * ringGap;
-      for (let i = 0; i < ringGroups.length; i++) {
-        const angle = (2 * Math.PI * i) / ringGroups.length - Math.PI / 2;
-        groupCenters.set(ringGroups[i], {
-          cx: radius * Math.cos(angle),
-          cy: radius * Math.sin(angle),
+      function subtreeSize(key: string): number {
+        const kids = childrenOf.get(key);
+        if (!kids || kids.length === 0) return 1;
+        return kids.reduce((s, k) => s + subtreeSize(k), 0);
+      }
+
+      const branchLen = 800 * spacingCenter;
+
+      // Each branch grows from parent at an angle within a fan
+      // Root's children fan across top half (upward), deeper branches narrow the fan
+      function layoutBranch(
+        key: string,
+        cx: number,
+        cy: number,
+        direction: number, // angle this branch is growing toward
+        fanWidth: number, // how wide the fan of children can spread
+      ) {
+        groupCenters.set(key, { cx, cy });
+        const kids = childrenOf.get(key);
+        if (!kids || kids.length === 0) return;
+
+        const totalLeaves = kids.reduce((s, k) => s + subtreeSize(k), 0);
+        let angleOffset = direction - fanWidth / 2;
+
+        for (const child of kids) {
+          const childLeaves = subtreeSize(child);
+          const slice = (fanWidth * childLeaves) / totalLeaves;
+          const childAngle = angleOffset + slice / 2;
+          const parentR = groupRadii.get(key) ?? 15;
+          const childR = groupRadii.get(child) ?? 15;
+          const dist = (branchLen + parentR + childR) * spacingGroups;
+          const childCx = cx + dist * Math.cos(childAngle);
+          const childCy = cy + dist * Math.sin(childAngle);
+          // Children's fan narrows as tree grows
+          const childFan = Math.min(fanWidth * 0.8, slice * 1.5);
+          layoutBranch(child, childCx, childCy, childAngle, childFan);
+          angleOffset += slice;
+        }
+      }
+
+      // Root at bottom, fan upward only (no sideways/downward branches)
+      groupCenters.set(centerKey, { cx: 0, cy: 0 });
+      layoutBranch(centerKey, 0, 0, Math.PI / 2, Math.PI * 0.6);
+
+      const maxY = Math.max(0, ...Array.from(groupCenters.values()).map(p => p.cy));
+      disconnectedPos = { cx: 0, cy: maxY + branchLen };
+
+    } else if (layoutType === 'mandelbrot') {
+      // Fractal spiral: groups placed along golden-angle spiral with fractal branching
+      groupCenters.set(centerKey, { cx: 0, cy: 0 });
+      const bfsDepth = new Map<string, number>();
+      bfsDepth.set(centerKey, 0);
+      for (const key of bfsOrder) {
+        const parent = parentMap.get(key);
+        if (parent !== undefined) {
+          bfsDepth.set(key, (bfsDepth.get(parent) ?? 0) + 1);
+        }
+      }
+
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      const childIndex = new Map<string, number>();
+      const childCount = new Map<string, number>();
+      for (const key of bfsOrder) {
+        const parent = parentMap.get(key);
+        if (parent !== undefined) {
+          childCount.set(parent, (childCount.get(parent) ?? 0) + 1);
+        }
+      }
+
+      for (const key of bfsOrder) {
+        if (key === centerKey) continue;
+        const parent = parentMap.get(key)!;
+        const parentPos = groupCenters.get(parent) ?? { cx: 0, cy: 0 };
+        const depth = bfsDepth.get(key) ?? 1;
+        const siblings = childCount.get(parent) ?? 1;
+        const idx = childIndex.get(parent) ?? 0;
+        childIndex.set(parent, idx + 1);
+
+        const parentR = groupRadii.get(parent) ?? 15;
+        const myR = groupRadii.get(key) ?? 15;
+        const baseAngle = parent === centerKey
+          ? (2 * Math.PI * idx) / siblings
+          : Math.atan2(parentPos.cy, parentPos.cx);
+        const spiralAngle = baseAngle + idx * golden * 0.5;
+        const dist = (parentR + myR) * spacingGroups + (150 + 100 / Math.sqrt(depth)) * spacingCenter;
+
+        groupCenters.set(key, {
+          cx: parentPos.cx + dist * Math.cos(spiralAngle),
+          cy: parentPos.cy + dist * Math.sin(spiralAngle),
         });
       }
-
-      queue = nextQueue;
+      const maxDist = Math.max(200, ...Array.from(groupCenters.values()).map(p => Math.sqrt(p.cx * p.cx + p.cy * p.cy)));
+      disconnectedPos = { cx: 0, cy: maxDist + 400 };
     }
 
-    // Disconnected groups all go to one spot
-    const unvisited = groupKeys.filter(k => !visited.has(k));
-    if (unvisited.length > 0) {
-      const pos = { cx: 0, cy: (ring + 1) * ringGap };
-      for (const key of unvisited) {
-        groupCenters.set(key, pos);
-      }
+    // Place disconnected groups
+    for (const key of unvisited) {
+      groupCenters.set(key, disconnectedPos);
     }
 
-    // Intra-group sunshine: most connected node at center, rest in concentric rings
+    // Intra-group layout: most connected node at center, rest in concentric rings
     const nodeEdgeCount = new Map<string, number>();
     for (const edge of data.edges) {
-      if (!visibleEdgeTypes.has(edge.type)) continue;
       nodeEdgeCount.set(edge.source, (nodeEdgeCount.get(edge.source) ?? 0) + 1);
       nodeEdgeCount.set(edge.target, (nodeEdgeCount.get(edge.target) ?? 0) + 1);
     }
 
     const groupedNodes = new Map<string, typeof visibleNodes>();
+    const loneNodes: typeof visibleNodes = [];
     for (const node of visibleNodes) {
-      const key = getGroupKey(node.qualifiedName);
-      if (!groupedNodes.has(key)) groupedNodes.set(key, []);
-      groupedNodes.get(key)!.push(node);
+      if ((nodeEdgeCount.get(node.id) ?? 0) === 0) {
+        loneNodes.push(node);
+      } else {
+        const key = getGroupKey(node.qualifiedName);
+        if (!groupedNodes.has(key)) groupedNodes.set(key, []);
+        groupedNodes.get(key)!.push(node);
+      }
     }
     for (const [, nodes] of groupedNodes) {
       nodes.sort((a, b) => (nodeEdgeCount.get(b.id) ?? 0) - (nodeEdgeCount.get(a.id) ?? 0));
     }
+    if (loneNodes.length > 0) {
+      if (!groupedNodes.has('__disconnected__')) groupedNodes.set('__disconnected__', []);
+      groupedNodes.get('__disconnected__')!.push(...loneNodes);
+      groupCenters.set('__disconnected__', disconnectedPos);
+    }
 
-    const intraGap = 20;
     for (const [key, nodes] of groupedNodes) {
-      const gc = groupCenters.get(key) ?? { cx: 0, cy: 0 };
+      const gc = groupCenters.get(key) ?? disconnectedPos;
       if (nodes.length === 1) {
         nodePositions.set(nodes[0].id, { x: gc.cx, y: gc.cy });
         continue;
@@ -181,15 +345,6 @@ export function buildGraphology(
           placed++;
         }
       }
-    }
-  } else {
-    // Force-directed: random initial positions, FA2 handles layout
-    const spread = Math.sqrt(visibleNodes.length) * 10;
-    for (const node of visibleNodes) {
-      nodePositions.set(node.id, {
-        x: (Math.random() - 0.5) * spread,
-        y: (Math.random() - 0.5) * spread,
-      });
     }
   }
 
@@ -238,7 +393,6 @@ export function buildGraphology(
   }
 
   for (const edge of data.edges) {
-    if (!visibleEdgeTypes.has(edge.type)) continue;
     if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) continue;
     if (edge.source === edge.target) continue;
 
@@ -263,7 +417,7 @@ export function buildGraphology(
       const w = Math.max(1, edge.weight);
       graph.addEdge(edge.source, edge.target, {
         label: edgeLabel,
-        color: (edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type)) + '80',
+        color: edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type),
         size: edgeSize(w),
         rawWeight: w,
         edgeType: edge.type,

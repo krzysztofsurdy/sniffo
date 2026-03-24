@@ -20,9 +20,6 @@ import ExportMenu from './ExportMenu';
 
 interface GraphInnerProps {
   data: GraphData;
-  visibleNodeTypes: Set<string>;
-  visibleEdgeTypes: Set<string>;
-  hiddenNamespaces: Set<string>;
   layoutType: string;
 }
 
@@ -141,10 +138,27 @@ function NodeDrag({ layoutRef }: { layoutRef: React.RefObject<FA2Layout | null> 
   return null;
 }
 
+function isNodeNsHidden(qualifiedName: string, hiddenNamespaces: Set<string>): boolean {
+  if (!hiddenNamespaces.size) return false;
+  const sep = qualifiedName.includes('\\') ? '\\' : qualifiedName.includes('/') ? '/' : '.';
+  const parts = qualifiedName.split(sep);
+  for (let i = 1; i <= parts.length - 1; i++) {
+    if (hiddenNamespaces.has(parts.slice(0, i).join(sep))) return true;
+  }
+  return false;
+}
+
+function isNodeDimmed(attrs: Record<string, unknown>, visibleNodeTypes: Set<string>, hiddenNamespaces: Set<string>): boolean {
+  return !visibleNodeTypes.has(attrs.nodeType as string) || isNodeNsHidden(attrs.qualifiedName as string, hiddenNamespaces);
+}
+
 function GraphHighlighter() {
   const sigma = useSigma();
   const selectedNodeId = useUIStore((s) => s.selectedNodeId);
   const selectedNodeIds = useUIStore((s) => s.selectedNodeIds);
+  const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
+  const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
+  const hiddenNamespaces = useUIStore((s) => s.hiddenNamespaces);
   const blastRadiusActive = useNavigationStore((s) => s.blastRadiusActive);
   const blastRadiusDepth = useNavigationStore((s) => s.blastRadiusDepth);
   const setSettings = useSetSettings();
@@ -211,7 +225,25 @@ function GraphHighlighter() {
     }
 
     if (!selectedNodeId) {
-      setSettings({ nodeReducer: null, edgeReducer: null });
+      setSettings({
+        nodeReducer: (_node, attrs) => {
+          if (isNodeDimmed(attrs, visibleNodeTypes, hiddenNamespaces)) {
+            return { ...attrs, hidden: true };
+          }
+          return attrs;
+        },
+        edgeReducer: (edge, attrs) => {
+          const graph = sigma.getGraph();
+          const srcAttrs = graph.getNodeAttributes(graph.source(edge));
+          const tgtAttrs = graph.getNodeAttributes(graph.target(edge));
+          const edgeOff = !visibleEdgeTypes.has(attrs.edgeType as string);
+          const nodeOff = isNodeDimmed(srcAttrs, visibleNodeTypes, hiddenNamespaces) || isNodeDimmed(tgtAttrs, visibleNodeTypes, hiddenNamespaces);
+          if (edgeOff || nodeOff) {
+            return { ...attrs, hidden: true };
+          }
+          return attrs;
+        },
+      });
       return;
     }
 
@@ -240,7 +272,7 @@ function GraphHighlighter() {
         return { ...attrs, hidden: true };
       },
     });
-  }, [selectedNodeId, selectedNodeIds, blastRadiusActive, blastData, setSettings, sigma]);
+  }, [selectedNodeId, selectedNodeIds, blastRadiusActive, blastData, setSettings, sigma, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces]);
 
   return null;
 }
@@ -297,18 +329,23 @@ function SelectionPulse() {
   return null;
 }
 
-function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType, layoutRef, onGraphLoad }: GraphInnerProps & { layoutRef: React.MutableRefObject<FA2Layout | null>; onGraphLoad: () => void }) {
+function GraphLoader({ data, layoutType, layoutRef }: { data: GraphData; layoutType: string; layoutRef: React.MutableRefObject<FA2Layout | null> }) {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
+  const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
+  const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
+  const hiddenNamespaces = useUIStore((s) => s.hiddenNamespaces);
+  const spacingNodes = useUIStore((s) => s.spacingNodes);
+  const spacingCenter = useUIStore((s) => s.spacingCenter);
+  const spacingGroups = useUIStore((s) => s.spacingGroups);
 
   const graph = useMemo(
-    () => buildGraphology(data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType),
-    [data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType],
+    () => buildGraphology(data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespaces, layoutType, spacingNodes, spacingCenter, spacingGroups),
+    [data, layoutType, spacingNodes, spacingCenter, spacingGroups],
   );
 
   useEffect(() => {
     loadGraph(graph);
-    onGraphLoad();
 
     if (layoutRef.current) {
       layoutRef.current.kill();
@@ -352,9 +389,6 @@ function GraphLoader({ data, visibleNodeTypes, visibleEdgeTypes, hiddenNamespace
 
 export default function GraphCanvas() {
   const currentLevel = useUIStore((s) => s.currentLevel);
-  const visibleNodeTypes = useUIStore((s) => s.visibleNodeTypes);
-  const visibleEdgeTypes = useUIStore((s) => s.visibleEdgeTypes);
-  const hiddenNamespaces = useUIStore((s) => s.hiddenNamespaces);
   const layoutType = useUIStore((s) => s.layoutType);
   const drillParentId = useNavigationStore((s) => s.drillParentId);
   const showEdgeLabels = useUIStore((s) => s.showEdgeLabels);
@@ -420,16 +454,31 @@ export default function GraphCanvas() {
             context.fillStyle = '#FDFCF5';
             context.fillText(data.label, x, y);
           },
+          defaultDrawNodeHover: (context, data, settings) => {
+            if (!data.label) return;
+            const size = settings.labelSize + 2;
+            const font = settings.labelFont;
+            context.font = `bold ${size}px ${font}`;
+            const textWidth = context.measureText(data.label).width;
+            const pad = 5;
+            const x = data.x + data.size + 3;
+            const y = data.y + size / 3;
+            context.fillStyle = '#2A1F1A';
+            context.beginPath();
+            context.roundRect(x - pad, y - size, textWidth + pad * 2, size + pad * 2, 4);
+            context.fill();
+            context.strokeStyle = '#5E4A3C';
+            context.lineWidth = 1;
+            context.stroke();
+            context.fillStyle = '#FDFCF5';
+            context.fillText(data.label, x, y);
+          },
         }}
       >
         <GraphLoader
           data={graphData}
-          visibleNodeTypes={visibleNodeTypes}
-          visibleEdgeTypes={visibleEdgeTypes}
-          hiddenNamespaces={hiddenNamespaces}
           layoutType={layoutType}
           layoutRef={layoutRef}
-          onGraphLoad={() => {}}
         />
         <GraphEvents />
         <SelectionPulse />

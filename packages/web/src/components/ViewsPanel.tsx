@@ -3,7 +3,6 @@ import { useUIStore, useNavigationStore } from '../store';
 
 const LAYOUT_TYPES = [
   { value: 'sunshine', label: 'Sunshine' },
-  { value: 'force', label: 'Force-directed' },
 ];
 
 export default function ViewsPanel() {
@@ -31,6 +30,7 @@ export default function ViewsPanel() {
           ))}
         </select>
       </div>
+
 
       <div className="flex gap-1 mb-3">
         {['system', 'container', 'component'].map((level) => (
