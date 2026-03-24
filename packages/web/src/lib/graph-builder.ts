@@ -17,7 +17,7 @@ export function buildGraphology(
   visibleNodeTypes: Set<string>,
   visibleEdgeTypes: Set<string>,
 ): Graph {
-  const graph = new Graph({ multi: true });
+  const graph = new Graph();
 
   const visibleNodeIds = new Set<string>();
 
@@ -60,15 +60,17 @@ export function buildGraphology(
     if (!visibleNodeIds.has(edge.source) || !visibleNodeIds.has(edge.target)) continue;
     if (edge.source === edge.target) continue;
 
-    try {
+    const existingEdge = graph.findEdge(edge.source, edge.target, () => true);
+    if (existingEdge) {
+      const currentWeight = graph.getEdgeAttribute(existingEdge, 'size') ?? 1;
+      graph.setEdgeAttribute(existingEdge, 'size', currentWeight + Math.max(1, edge.weight));
+    } else {
       graph.addEdge(edge.source, edge.target, {
         label: edge.type,
         color: edge.metadata?.crossPackage ? '#F97316' : getEdgeColor(edge.type),
         size: Math.max(1, edge.weight),
         edgeType: edge.type,
       });
-    } catch {
-      // Duplicate edge -- skip
     }
   }
 
