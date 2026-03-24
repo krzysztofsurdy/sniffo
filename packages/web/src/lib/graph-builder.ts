@@ -44,27 +44,54 @@ export function buildGraphology(
     topLevel.get(top)!.push(ns);
   }
 
-  const groupSpacing = 60;
-  const nsPositions = new Map<string, { cx: number; cy: number }>();
-  let groupIdx = 0;
-  const groupCount = Math.max(1, topLevel.size);
-  for (const [, children] of topLevel) {
-    const groupAngle = (2 * Math.PI * groupIdx) / groupCount;
-    const groupRadius = groupCount * groupSpacing / (2 * Math.PI);
-    const gcx = groupRadius * Math.cos(groupAngle);
-    const gcy = groupRadius * Math.sin(groupAngle);
+  const spacing = 10;
+  const gap = 40;
 
-    const subSpacing = 20;
-    const cols = Math.ceil(Math.sqrt(children.length));
-    for (let ci = 0; ci < children.length; ci++) {
-      const row = Math.floor(ci / cols);
-      const col = ci % cols;
-      nsPositions.set(children[ci], {
-        cx: gcx + (col - cols / 2) * subSpacing,
-        cy: gcy + (row - cols / 2) * subSpacing,
-      });
+  const groups: Array<{ namespaces: string[]; nodeCount: number; side: number }> = [];
+  for (const [, children] of topLevel) {
+    let nodeCount = 0;
+    for (const ns of children) nodeCount += nsNodes.get(ns) ?? 0;
+    const side = Math.ceil(Math.sqrt(nodeCount)) * spacing;
+    groups.push({ namespaces: children, nodeCount, side });
+  }
+
+  groups.sort((a, b) => b.nodeCount - a.nodeCount);
+
+  const totalArea = groups.reduce((s, g) => s + g.side * g.side, 0);
+  const maxRowWidth = Math.max(Math.sqrt(totalArea) * 1.5, groups[0]?.side ?? 0);
+
+  const nsPositions = new Map<string, { cx: number; cy: number }>();
+  let rowX = 0;
+  let rowY = 0;
+  let rowMaxHeight = 0;
+
+  for (const group of groups) {
+    if (rowX > 0 && rowX + group.side > maxRowWidth) {
+      rowY += rowMaxHeight + gap;
+      rowX = 0;
+      rowMaxHeight = 0;
     }
-    groupIdx++;
+
+    const gcx = rowX + group.side / 2;
+    const gcy = rowY + group.side / 2;
+
+    let subIdx = 0;
+    for (const ns of group.namespaces) {
+      const count = nsNodes.get(ns) ?? 0;
+      const subCols = Math.max(1, Math.ceil(Math.sqrt(count)));
+      const blockW = subCols * spacing;
+      const subRow = Math.floor(subIdx / Math.max(1, Math.floor(group.side / blockW)));
+      const subCol = subIdx % Math.max(1, Math.floor(group.side / blockW));
+
+      nsPositions.set(ns, {
+        cx: gcx - group.side / 2 + subCol * blockW + blockW / 2,
+        cy: gcy - group.side / 2 + subRow * blockW + blockW / 2,
+      });
+      subIdx++;
+    }
+
+    rowX += group.side + gap;
+    rowMaxHeight = Math.max(rowMaxHeight, group.side);
   }
 
   const visibleNodeIds = new Set<string>();
