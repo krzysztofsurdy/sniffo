@@ -108,21 +108,23 @@ export class DuckDBGraphStore implements GraphStore {
   async upsertNodes(nodes: StoredNode[]): Promise<void> {
     if (nodes.length === 0) return;
     const db = this.getDb();
-    await db.run('BEGIN TRANSACTION');
-    try {
-      for (const node of nodes) {
-        await db.run(
-          `INSERT OR REPLACE INTO nodes (id, type, level, qualified_name, short_name, file_path, start_line, end_line, content_hash, is_stale, last_analyzed_at, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const CHUNK = 500;
+    for (let i = 0; i < nodes.length; i += CHUNK) {
+      const chunk = nodes.slice(i, i + CHUNK);
+      const placeholders = chunk.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values: unknown[] = [];
+      for (const node of chunk) {
+        values.push(
           node.id, node.type, node.level, node.qualifiedName, node.shortName,
           node.filePath, node.startLine, node.endLine, node.contentHash,
           node.isStale, node.lastAnalyzedAt, JSON.stringify(node.metadata),
         );
       }
-      await db.run('COMMIT');
-    } catch (err) {
-      await db.run('ROLLBACK');
-      throw err;
+      await db.run(
+        `INSERT OR REPLACE INTO nodes (id, type, level, qualified_name, short_name, file_path, start_line, end_line, content_hash, is_stale, last_analyzed_at, metadata)
+         VALUES ${placeholders}`,
+        ...values,
+      );
     }
   }
 
@@ -210,20 +212,22 @@ export class DuckDBGraphStore implements GraphStore {
   async upsertEdges(edges: StoredEdge[]): Promise<void> {
     if (edges.length === 0) return;
     const db = this.getDb();
-    await db.run('BEGIN TRANSACTION');
-    try {
-      for (const edge of edges) {
-        await db.run(
-          `INSERT OR REPLACE INTO edges (id, source, target, type, level, weight, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    const CHUNK = 500;
+    for (let i = 0; i < edges.length; i += CHUNK) {
+      const chunk = edges.slice(i, i + CHUNK);
+      const placeholders = chunk.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values: unknown[] = [];
+      for (const edge of chunk) {
+        values.push(
           edge.id, edge.source, edge.target, edge.type, edge.level, edge.weight,
           JSON.stringify(edge.metadata),
         );
       }
-      await db.run('COMMIT');
-    } catch (err) {
-      await db.run('ROLLBACK');
-      throw err;
+      await db.run(
+        `INSERT OR REPLACE INTO edges (id, source, target, type, level, weight, metadata)
+         VALUES ${placeholders}`,
+        ...values,
+      );
     }
   }
 

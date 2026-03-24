@@ -232,7 +232,7 @@ export class AnalysisPipeline {
 
     // Batch write nodes and edges
     const totalWrites = allNewNodes.length + allNewEdges.length;
-    const WRITE_BATCH = 5000;
+    const WRITE_BATCH = 50000;
     let written = 0;
     options.onProgress?.({ phase: 'storing', current: 0, total: totalWrites, detail: `Writing ${allNewNodes.length} nodes...` });
     for (let i = 0; i < allNewNodes.length; i += WRITE_BATCH) {
