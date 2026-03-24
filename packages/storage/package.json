@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/storage",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "DuckDB-based graph store for Sniffo",
   "license": "MIT",
   "repository": {
