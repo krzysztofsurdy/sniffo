@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
-const EXCLUDED_DIRS = new Set(['node_modules', 'vendor', '.git', '.sniffo']);
+const EXCLUDED_DIRS = new Set(['node_modules', 'vendor', '.git']);
 
 interface FileNode {
   name: string;
@@ -47,12 +47,14 @@ async function buildTree(dir: string, rootDir: string): Promise<TreeNode[]> {
 }
 
 export function registerDocsRoutes(app: FastifyInstance, rootDir: string): void {
+  const docsDir = join(rootDir, '.sniffo', 'docs');
+
   app.get('/api/docs', async (_request, reply) => {
     try {
-      const tree = await buildTree(rootDir, rootDir);
+      const tree = await buildTree(docsDir, docsDir);
       return { success: true, data: { tree } };
     } catch (err) {
-      return reply.status(500).send({ success: false, error: 'Failed to list documentation files' });
+      return { success: true, data: { tree: [] } };
     }
   });
 
@@ -63,9 +65,9 @@ export function registerDocsRoutes(app: FastifyInstance, rootDir: string): void 
       return reply.status(400).send({ success: false, error: 'Only markdown files are supported' });
     }
 
-    const absolutePath = join(rootDir, filePath);
+    const absolutePath = join(docsDir, filePath);
 
-    if (!absolutePath.startsWith(rootDir + '/') && absolutePath !== rootDir) {
+    if (!absolutePath.startsWith(docsDir)) {
       return reply.status(400).send({ success: false, error: 'Invalid file path' });
     }
 

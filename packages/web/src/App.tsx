@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import GraphCanvas from './components/GraphCanvas';
-import SearchBar from './components/SearchBar';
+// import SearchBar from './components/SearchBar';
 import DetailPanel from './components/DetailPanel';
 import FilterPanel from './components/FilterPanel';
 import FreshnessBar from './components/FreshnessBar';
@@ -32,7 +32,6 @@ export default function App() {
             </button>
           ))}
         </nav>
-        {activeTab === 'graph' && <SearchBar />}
       </header>
       {activeTab === 'graph' && <FreshnessBar />}
       <main className="flex-1 flex overflow-hidden">
