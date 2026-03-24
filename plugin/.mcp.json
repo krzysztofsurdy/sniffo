@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "contextualizer": {
+    "sniffo": {
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/../packages/mcp-server/dist/index.js"],
       "env": {
