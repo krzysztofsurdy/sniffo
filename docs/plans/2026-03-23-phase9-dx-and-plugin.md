@@ -4,7 +4,7 @@
 
 **Goal:** Reduce onboarding from 6 manual steps to one command (`sniffo init`) and package the tool as a Claude Code plugin for zero-config MCP integration.
 
-**Architecture:** Three improvements: (1) merge init+analyze into a single smart `sniffo init` with progress output, (2) add `lpc doctor` for validation, (3) create a Claude Code plugin directory structure at the repo root that bundles the MCP server, skills, and a SessionStart hook for auto-setup. The plugin uses `.mcp.json` to start `sniffo-mcp` and includes skills for common operations.
+**Architecture:** Three improvements: (1) merge init+analyze into a single smart `sniffo init` with progress output, (2) add `sniffo doctor` for validation, (3) create a Claude Code plugin directory structure at the repo root that bundles the MCP server, skills, and a SessionStart hook for auto-setup. The plugin uses `.mcp.json` to start `sniffo-mcp` and includes skills for common operations.
 
 **Tech Stack:** Commander.js (existing CLI), Claude Code plugin format (.claude-plugin/plugin.json, .mcp.json, skills/), existing MCP server.
 
@@ -259,7 +259,7 @@ git commit -m "feat: add progress output during analysis"
 
 ---
 
-## Task 3: Add `lpc doctor` command
+## Task 3: Add `sniffo doctor` command
 
 **Files:**
 - Create: `packages/cli/src/commands/doctor.ts`
@@ -843,7 +843,7 @@ git commit -m "feat: create Claude Code plugin with MCP server, skills, and hook
 
 ---
 
-## Task 7: Add `lpc setup-plugin` command
+## Task 7: Add `sniffo setup-plugin` command
 
 A convenience command that symlinks or copies the plugin for local use.
 
@@ -979,11 +979,11 @@ git commit -m "chore: phase 9 complete -- DX improvements and Claude Code plugin
 |------|------|-------|
 | 1 | Init auto-analyzes, smart defaults | ~1 new test |
 | 2 | Progress output during analysis | 0 (visual) |
-| 3 | `lpc doctor` validation command | ~3 tests |
+| 3 | `sniffo doctor` validation command | ~3 tests |
 | 4 | `serve --open` + auto-init | 0 (interactive) |
 | 5 | MCP server graceful startup | 0 (MCP runtime) |
 | 6 | Claude Code plugin (manifest, MCP, skills, hooks) | 0 (plugin structure) |
-| 7 | `lpc setup-plugin` command | 0 (wiring) |
+| 7 | `sniffo setup-plugin` command | 0 (wiring) |
 | 8 | Final verification | 0 |
 
 **New tests: ~4**
@@ -991,11 +991,11 @@ git commit -m "chore: phase 9 complete -- DX improvements and Claude Code plugin
 **Definition of Done:**
 - [ ] `sniffo init` is a single command that creates config, installs hook, AND runs first analysis
 - [ ] Analysis shows progress (file count, current file)
-- [ ] `lpc doctor` validates the full setup
-- [ ] `lpc serve --open` opens browser
+- [ ] `sniffo doctor` validates the full setup
+- [ ] `sniffo serve --open` opens browser
 - [ ] MCP server auto-initializes on first connection (no manual setup needed)
 - [ ] Claude Code plugin directory with manifest, MCP config, 3 skills, session hook
-- [ ] `lpc setup-plugin` wires MCP for a project
+- [ ] `sniffo setup-plugin` wires MCP for a project
 
 **New onboarding flow:**
 ```bash
