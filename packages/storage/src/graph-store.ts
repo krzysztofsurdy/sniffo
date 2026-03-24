@@ -31,6 +31,7 @@ export interface GraphStore {
 
   // Nodes
   upsertNode(node: StoredNode): Promise<void>;
+  upsertNodes(nodes: StoredNode[]): Promise<void>;
   getNodeById(id: string): Promise<StoredNode | null>;
   getNodeByQualifiedName(fqn: string): Promise<StoredNode | null>;
   getNodesByShortName(shortName: string): Promise<StoredNode[]>;
@@ -43,6 +44,7 @@ export interface GraphStore {
 
   // Edges
   upsertEdge(edge: StoredEdge): Promise<void>;
+  upsertEdges(edges: StoredEdge[]): Promise<void>;
   getOutgoingEdges(nodeId: string): Promise<StoredEdge[]>;
   getIncomingEdges(nodeId: string): Promise<StoredEdge[]>;
   getEdgesByType(type: EdgeType): Promise<StoredEdge[]>;

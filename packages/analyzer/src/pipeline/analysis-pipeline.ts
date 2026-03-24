@@ -26,7 +26,7 @@ import { cascadeInvalidation } from './cascade-invalidator.js';
 import { detectWorkspaces, type WorkspaceInfo } from './workspace-detector.js';
 
 export interface ProgressEvent {
-  phase: 'discovery' | 'parsing' | 'resolution' | 'hierarchy' | 'aggregation';
+  phase: 'discovery' | 'parsing' | 'storing' | 'resolution' | 'hierarchy' | 'aggregation';
   current: number;
   total: number;
   file?: string;
@@ -168,8 +168,11 @@ export class AnalysisPipeline {
       options.onProgress?.({ phase: 'parsing', current: Math.min(batchStart + BATCH_SIZE, filesToProcess.length), total: filesToProcess.length });
     }
 
-    // Phase 2: Store nodes/edges sequentially (DuckDB single-writer)
+    // Phase 2: Store nodes/edges in batches (much faster than one-by-one)
     const now = new Date().toISOString();
+    const allNewNodes: StoredNode[] = [];
+    const allNewEdges: StoredEdge[] = [];
+
     for (const { parsed, fileChange } of parseResults) {
       parsedFiles.push(parsed);
 
@@ -185,7 +188,7 @@ export class AnalysisPipeline {
 
         const nodeId = createNodeId(nodeType, sym.fqn);
 
-        const node: StoredNode = {
+        allNewNodes.push({
           id: nodeId,
           type: nodeType,
           level,
@@ -198,9 +201,7 @@ export class AnalysisPipeline {
           isStale: false,
           lastAnalyzedAt: now,
           metadata: sym.metadata,
-        };
-
-        await this.store.upsertNode(node);
+        });
         symbolsFound++;
 
         if (CODE_LEVEL_KINDS.has(sym.kind)) {
@@ -208,7 +209,7 @@ export class AnalysisPipeline {
           if (parentFqn) {
             const parentNodeType = this.guessParentNodeType(parsed, parentFqn);
             const parentNodeId = createNodeId(parentNodeType, parentFqn);
-            const containsEdge: StoredEdge = {
+            allNewEdges.push({
               id: createEdgeId(parentNodeId, nodeId, EdgeType.CONTAINS),
               source: parentNodeId,
               target: nodeId,
@@ -216,8 +217,7 @@ export class AnalysisPipeline {
               level: GraphLevel.COMPONENT,
               weight: 1.0,
               metadata: {},
-            };
-            await this.store.upsertEdge(containsEdge);
+            });
           }
         }
       }
@@ -229,9 +229,21 @@ export class AnalysisPipeline {
       );
     }
 
+    // Batch write nodes and edges
+    options.onProgress?.({ phase: 'storing', current: 0, total: allNewNodes.length + allNewEdges.length });
+    const WRITE_BATCH = 5000;
+    for (let i = 0; i < allNewNodes.length; i += WRITE_BATCH) {
+      await this.store.upsertNodes(allNewNodes.slice(i, i + WRITE_BATCH));
+      options.onProgress?.({ phase: 'storing', current: Math.min(i + WRITE_BATCH, allNewNodes.length), total: allNewNodes.length + allNewEdges.length });
+    }
+    for (let i = 0; i < allNewEdges.length; i += WRITE_BATCH) {
+      await this.store.upsertEdges(allNewEdges.slice(i, i + WRITE_BATCH));
+    }
+
     const allNodes = await this.store.getAllNodes();
     const symbolIndex = this.buildSymbolIndex(allNodes);
 
+    const refEdges: StoredEdge[] = [];
     for (const parsed of parsedFiles) {
       const currentNamespace = extractNamespaceFromSymbols(parsed);
 
@@ -247,7 +259,7 @@ export class AnalysisPipeline {
         const sourceNodeId = createNodeId(sourceNodeType, resolved.original.sourceSymbolFqn);
         const edgeType = REFERENCE_KIND_TO_EDGE_TYPE[resolved.original.kind] ?? EdgeType.DEPENDS_ON;
 
-        const edge: StoredEdge = {
+        refEdges.push({
           id: createEdgeId(sourceNodeId, resolved.targetNodeId, edgeType),
           source: sourceNodeId,
           target: resolved.targetNodeId,
@@ -261,11 +273,14 @@ export class AnalysisPipeline {
             },
             confidence: resolved.confidence,
           },
-        };
-
-        await this.store.upsertEdge(edge);
+        });
         referencesFound++;
       }
+    }
+
+    // Batch write reference edges
+    for (let i = 0; i < refEdges.length; i += WRITE_BATCH) {
+      await this.store.upsertEdges(refEdges.slice(i, i + WRITE_BATCH));
     }
 
     options.onProgress?.({ phase: 'resolution', current: parsedFiles.length, total: parsedFiles.length });
@@ -277,13 +292,8 @@ export class AnalysisPipeline {
     const componentNodes = allNodes.filter((n) => n.level === GraphLevel.COMPONENT);
     const hierarchy = buildHierarchy(componentNodes, options.projectName, workspaces);
 
-    await this.store.upsertNode(hierarchy.systemNode);
-    for (const containerNode of hierarchy.containerNodes) {
-      await this.store.upsertNode(containerNode);
-    }
-    for (const edge of hierarchy.containmentEdges) {
-      await this.store.upsertEdge(edge);
-    }
+    await this.store.upsertNodes([hierarchy.systemNode, ...hierarchy.containerNodes]);
+    await this.store.upsertEdges(hierarchy.containmentEdges);
 
     options.onProgress?.({ phase: 'hierarchy', current: 1, total: 1 });
 
@@ -303,8 +313,8 @@ export class AnalysisPipeline {
       allNodes.filter(n => n.level === GraphLevel.CONTAINER).map(n => n.id),
     );
     const aggregated = aggregateEdges(codeEdges, containmentMap, componentNodeIds, containerNodeIds);
-    for (const edge of aggregated) {
-      await this.store.upsertEdge(edge);
+    for (let i = 0; i < aggregated.length; i += WRITE_BATCH) {
+      await this.store.upsertEdges(aggregated.slice(i, i + WRITE_BATCH));
     }
 
     options.onProgress?.({ phase: 'aggregation', current: 1, total: 1 });
