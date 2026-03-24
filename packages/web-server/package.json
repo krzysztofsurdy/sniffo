@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/web-server",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "HTTP API server for Sniffo",
   "license": "MIT",
   "repository": {
