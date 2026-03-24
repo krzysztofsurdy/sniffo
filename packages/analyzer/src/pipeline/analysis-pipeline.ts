@@ -282,7 +282,13 @@ export class AnalysisPipeline {
       containmentMap.set(e.target, e.source);
     }
 
-    const aggregated = aggregateEdges(codeEdges, containmentMap);
+    const componentNodeIds = new Set(
+      allNodes.filter(n => n.level === GraphLevel.COMPONENT).map(n => n.id),
+    );
+    const containerNodeIds = new Set(
+      allNodes.filter(n => n.level === GraphLevel.CONTAINER).map(n => n.id),
+    );
+    const aggregated = aggregateEdges(codeEdges, containmentMap, componentNodeIds, containerNodeIds);
     for (const edge of aggregated) {
       await this.store.upsertEdge(edge);
     }

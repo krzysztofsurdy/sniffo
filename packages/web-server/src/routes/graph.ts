@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { GraphStore } from '@sniffo/storage';
-import { GraphLevel } from '@sniffo/core';
+import { GraphLevel, EdgeType } from '@sniffo/core';
 
 const LEVEL_MAP: Record<string, GraphLevel> = {
   system: GraphLevel.SYSTEM,
@@ -21,7 +21,7 @@ export function registerGraphRoutes(app: FastifyInstance, store: GraphStore): vo
 
     const allEdges = await store.getAllEdges();
     const nodeIds = new Set(nodes.map(n => n.id));
-    const edges = allEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    const edges = allEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target) && e.type !== EdgeType.CONTAINS);
 
     return { success: true, data: { nodes, edges } };
   });

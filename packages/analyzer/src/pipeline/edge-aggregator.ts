@@ -6,9 +6,11 @@ const AGGREGATED_TYPE = EdgeType.DEPENDS_ON;
 export function aggregateEdges(
   l4Edges: StoredEdge[],
   containmentMap: Map<string, string>,
+  componentNodeIds: Set<string>,
+  containerNodeIds: Set<string>,
 ): StoredEdge[] {
-  const l3Edges = aggregateToLevel(l4Edges, containmentMap, GraphLevel.COMPONENT);
-  const l2Edges = aggregateToLevel(l3Edges, containmentMap, GraphLevel.CONTAINER);
+  const l3Edges = aggregateToLevel(l4Edges, containmentMap, GraphLevel.COMPONENT, componentNodeIds);
+  const l2Edges = aggregateToLevel(l3Edges, containmentMap, GraphLevel.CONTAINER, containerNodeIds);
   return [...l3Edges, ...l2Edges];
 }
 
@@ -16,12 +18,17 @@ function aggregateToLevel(
   edges: StoredEdge[],
   containmentMap: Map<string, string>,
   targetLevel: GraphLevel,
+  targetLevelNodeIds: Set<string>,
 ): StoredEdge[] {
   const buckets = new Map<string, { source: string; target: string; count: number; types: Set<string> }>();
 
   for (const edge of edges) {
-    const parentSource = containmentMap.get(edge.source);
-    const parentTarget = containmentMap.get(edge.target);
+    const parentSource = targetLevelNodeIds.has(edge.source)
+      ? edge.source
+      : containmentMap.get(edge.source);
+    const parentTarget = targetLevelNodeIds.has(edge.target)
+      ? edge.target
+      : containmentMap.get(edge.target);
 
     if (!parentSource || !parentTarget) continue;
     if (parentSource === parentTarget) continue;

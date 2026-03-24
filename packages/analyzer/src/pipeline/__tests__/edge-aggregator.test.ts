@@ -18,6 +18,9 @@ describe('aggregateEdges', () => {
     [classB, containerB],
   ]);
 
+  const componentNodeIds = new Set([classA, classB]);
+  const containerNodeIds = new Set([containerA, containerB]);
+
   it('aggregates L4 method-level CALLS into L3 class-level edges', () => {
     const l4Edges: StoredEdge[] = [{
       id: createEdgeId(methodA, methodB, EdgeType.CALLS),
@@ -29,7 +32,7 @@ describe('aggregateEdges', () => {
       metadata: {},
     }];
 
-    const result = aggregateEdges(l4Edges, containmentMap);
+    const result = aggregateEdges(l4Edges, containmentMap, componentNodeIds, containerNodeIds);
 
     const l3Edges = result.filter(e => e.level === GraphLevel.COMPONENT);
     expect(l3Edges).toHaveLength(1);
@@ -48,7 +51,7 @@ describe('aggregateEdges', () => {
       metadata: {},
     }];
 
-    const result = aggregateEdges(l4Edges, containmentMap);
+    const result = aggregateEdges(l4Edges, containmentMap, componentNodeIds, containerNodeIds);
     const l2Edges = result.filter(e => e.level === GraphLevel.CONTAINER);
     expect(l2Edges).toHaveLength(1);
     expect(l2Edges[0].source).toBe(containerA);
@@ -72,7 +75,7 @@ describe('aggregateEdges', () => {
       metadata: {},
     }];
 
-    const result = aggregateEdges(l4Edges, extendedContainment);
+    const result = aggregateEdges(l4Edges, extendedContainment, componentNodeIds, containerNodeIds);
     const l3Edges = result.filter(e => e.level === GraphLevel.COMPONENT);
     expect(l3Edges).toHaveLength(0);
   });
@@ -97,7 +100,9 @@ describe('aggregateEdges', () => {
       metadata: {},
     }];
 
-    const result = aggregateEdges(l4Edges, crossContainment);
+    const crossComponentIds = new Set(['componentA', 'componentB']);
+    const crossContainerIds = new Set(['moduleA', 'moduleB']);
+    const result = aggregateEdges(l4Edges, crossContainment, crossComponentIds, crossContainerIds);
 
     const l3Edge = result.find(e => e.level === GraphLevel.COMPONENT);
     expect(l3Edge).toBeDefined();
@@ -127,11 +132,37 @@ describe('aggregateEdges', () => {
       metadata: {},
     }];
 
-    const result = aggregateEdges(l4Edges, samePackageContainment);
+    const sameComponentIds = new Set(['componentA', 'componentB']);
+    const sameContainerIds = new Set(['moduleA', 'moduleB']);
+    const result = aggregateEdges(l4Edges, samePackageContainment, sameComponentIds, sameContainerIds);
 
     const l2Edge = result.find(e => e.level === GraphLevel.CONTAINER);
     expect(l2Edge).toBeDefined();
     expect(l2Edge!.metadata.crossPackage).toBeUndefined();
+  });
+
+  it('handles CODE->COMPONENT edges where target is already at component level', () => {
+    const l4Edges: StoredEdge[] = [{
+      id: createEdgeId(methodA, classB, EdgeType.INSTANTIATES),
+      source: methodA,
+      target: classB,
+      type: EdgeType.INSTANTIATES,
+      level: GraphLevel.CODE,
+      weight: 1.0,
+      metadata: {},
+    }];
+
+    const result = aggregateEdges(l4Edges, containmentMap, componentNodeIds, containerNodeIds);
+
+    const l3Edges = result.filter(e => e.level === GraphLevel.COMPONENT);
+    expect(l3Edges).toHaveLength(1);
+    expect(l3Edges[0].source).toBe(classA);
+    expect(l3Edges[0].target).toBe(classB);
+
+    const l2Edges = result.filter(e => e.level === GraphLevel.CONTAINER);
+    expect(l2Edges).toHaveLength(1);
+    expect(l2Edges[0].source).toBe(containerA);
+    expect(l2Edges[0].target).toBe(containerB);
   });
 
   it('increments weight for multiple edges between same pair', () => {
@@ -160,7 +191,7 @@ describe('aggregateEdges', () => {
       },
     ];
 
-    const result = aggregateEdges(l4Edges, extendedContainment);
+    const result = aggregateEdges(l4Edges, extendedContainment, componentNodeIds, containerNodeIds);
     const l3Edges = result.filter(e => e.level === GraphLevel.COMPONENT);
     expect(l3Edges).toHaveLength(1);
     expect((l3Edges[0].metadata as any).constituentEdgeCount).toBe(2);
