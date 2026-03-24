@@ -350,7 +350,7 @@ export async function runDoctor(projectDir: string): Promise<DoctorResult> {
     name: 'sniffo-dir',
     label: '.sniffo directory',
     status: existsSync(ctxDir) ? 'pass' : 'fail',
-    message: existsSync(ctxDir) ? 'Found' : 'Missing. Run: lpc init',
+    message: existsSync(ctxDir) ? 'Found' : 'Missing. Run: sniffo init',
   });
 
   // 2. Config file
@@ -368,7 +368,7 @@ export async function runDoctor(projectDir: string): Promise<DoctorResult> {
       checks.push({ name: 'config', label: 'Configuration', status: 'fail', message: 'Invalid JSON' });
     }
   } else {
-    checks.push({ name: 'config', label: 'Configuration', status: 'fail', message: 'Missing config.json. Run: lpc init' });
+    checks.push({ name: 'config', label: 'Configuration', status: 'fail', message: 'Missing config.json. Run: sniffo init' });
   }
 
   // 3. Database
@@ -377,14 +377,14 @@ export async function runDoctor(projectDir: string): Promise<DoctorResult> {
     name: 'database',
     label: 'Graph database',
     status: existsSync(dbPath) ? 'pass' : 'fail',
-    message: existsSync(dbPath) ? 'Found' : 'Missing. Run: lpc analyze',
+    message: existsSync(dbPath) ? 'Found' : 'Missing. Run: sniffo analyze',
   });
 
   // 4. Pre-commit hook
   const hookPath = join(projectDir, '.git', 'hooks', 'pre-commit');
   if (existsSync(hookPath)) {
     const hookContent = readFileSync(hookPath, 'utf-8');
-    const hasCtx = hookContent.includes('lpc') || hookContent.includes('sniffo');
+    const hasCtx = hookContent.includes('sniffo') || hookContent.includes('sniffo');
     checks.push({
       name: 'hook',
       label: 'Pre-commit hook',
@@ -396,7 +396,7 @@ export async function runDoctor(projectDir: string): Promise<DoctorResult> {
       name: 'hook',
       label: 'Pre-commit hook',
       status: 'warn',
-      message: 'Not installed. Run: lpc install-hook',
+      message: 'Not installed. Run: sniffo install-hook',
     });
   }
 
@@ -456,7 +456,7 @@ pnpm --filter @sniffo/cli test -- --reporter verbose src/__tests__/doctor.test.t
 
 ```bash
 git add packages/cli/src/commands/doctor.ts packages/cli/src/__tests__/doctor.test.ts packages/cli/src/cli.ts
-git commit -m "feat: add lpc doctor command for setup validation"
+git commit -m "feat: add sniffo doctor command for setup validation"
 ```
 
 ---
@@ -938,7 +938,7 @@ pnpm build
 
 ```bash
 git add packages/cli/src/commands/setup-plugin.ts packages/cli/src/cli.ts
-git commit -m "feat: add lpc setup-plugin command for Claude Code integration"
+git commit -m "feat: add sniffo setup-plugin command for Claude Code integration"
 ```
 
 ---
@@ -1000,10 +1000,10 @@ git commit -m "chore: phase 9 complete -- DX improvements and Claude Code plugin
 **New onboarding flow:**
 ```bash
 # One command to rule them all:
-lpc init
+sniffo init
 
 # Or with web UI:
-lpc serve --open
+sniffo serve --open
 
 # Or as Claude Code plugin:
 claude --plugin-dir ./plugin

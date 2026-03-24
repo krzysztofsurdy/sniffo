@@ -237,8 +237,8 @@ describe('PythonParser', () => {
 
 ```bash
 cd /Users/krzysztofsurdy/ProjectsPrivate/llmProjectContextualizer
-pnpm install tree-sitter-python --filter @contextualizer/analyzer
-pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/parsers/python/__tests__/
+pnpm install tree-sitter-python --filter @sniffo/analyzer
+pnpm --filter @sniffo/analyzer test -- --reporter verbose src/parsers/python/__tests__/
 ```
 
 **Step 4: Create node-utils.ts**
@@ -285,8 +285,8 @@ export function findDescendantsByType(node: Node, type: string): Node[] {
 ```typescript
 // packages/analyzer/src/parsers/python/ast-visitor.ts
 import type { Node } from 'web-tree-sitter';
-import { SymbolKind, Modifier, ReferenceKind } from '@contextualizer/core';
-import type { ParsedSymbol, ParsedReference, ImportStatement, ParseError } from '@contextualizer/core';
+import { SymbolKind, Modifier, ReferenceKind } from '@sniffo/core';
+import type { ParsedSymbol, ParsedReference, ImportStatement, ParseError } from '@sniffo/core';
 import { findChildByType, findChildrenByType, findDescendantsByType } from './node-utils.js';
 
 interface VisitorContext {
@@ -627,7 +627,7 @@ function visitCalls(node: Node, ctx: VisitorContext): void {
 import { Parser, Language } from 'web-tree-sitter';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import type { LanguageParser, ParsedFile } from '@contextualizer/core';
+import type { LanguageParser, ParsedFile } from '@sniffo/core';
 import { visitTree } from './ast-visitor.js';
 
 export class PythonParser implements LanguageParser {
@@ -680,7 +680,7 @@ export class PythonParser implements LanguageParser {
 **Step 7: Run tests**
 
 ```bash
-pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/parsers/python/__tests__/
+pnpm --filter @sniffo/analyzer test -- --reporter verbose src/parsers/python/__tests__/
 ```
 
 **Step 8: Export and register**
@@ -713,7 +713,7 @@ git commit -m "feat: add Python parser with class, function, import, and inherit
 
 In each file that creates a `ParserRegistry`, add:
 ```typescript
-import { PythonParser } from '@contextualizer/analyzer';
+import { PythonParser } from '@sniffo/analyzer';
 await registry.register(new PythonParser());
 ```
 
@@ -761,8 +761,8 @@ git commit -m "feat: register Python parser in CLI, MCP server, and config defau
 // packages/mcp-server/src/tools/blast-radius.ts
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { computeBlastRadius, searchSymbols } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { computeBlastRadius, searchSymbols } from '@sniffo/analyzer';
 
 export function registerBlastRadiusTool(server: McpServer, store: GraphStore): void {
   server.tool(
@@ -829,7 +829,7 @@ registerBlastRadiusTool(server, store);
 **Step 3: Build and test**
 
 ```bash
-pnpm build && pnpm --filter @contextualizer/mcp-server test -- --reporter verbose
+pnpm build && pnpm --filter @sniffo/mcp-server test -- --reporter verbose
 ```
 
 **Step 4: Commit**
@@ -852,8 +852,8 @@ git commit -m "feat: add blast_radius MCP tool for impact analysis"
 ```typescript
 // packages/mcp-server/src/tools/cycles.ts
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { detectCycles } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { detectCycles } from '@sniffo/analyzer';
 
 export function registerCyclesTool(server: McpServer, store: GraphStore): void {
   server.tool(
@@ -901,7 +901,7 @@ registerCyclesTool(server, store);
 **Step 3: Build and test**
 
 ```bash
-pnpm build && pnpm --filter @contextualizer/mcp-server test -- --reporter verbose
+pnpm build && pnpm --filter @sniffo/mcp-server test -- --reporter verbose
 ```
 
 **Step 4: Commit**
@@ -931,8 +931,8 @@ Computes per-component metrics:
 ```typescript
 // packages/analyzer/src/query/__tests__/metrics.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DuckDBGraphStore } from '@contextualizer/storage';
-import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@contextualizer/core';
+import { DuckDBGraphStore } from '@sniffo/storage';
+import { GraphLevel, NodeType, EdgeType, createNodeId, createEdgeId } from '@sniffo/core';
 import { computeMetrics, type ComponentMetrics } from '../metrics.js';
 
 describe('architectural metrics', () => {
@@ -1033,15 +1033,15 @@ describe('architectural metrics', () => {
 **Step 2: Run tests to verify they fail**
 
 ```bash
-pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/query/__tests__/metrics.test.ts
+pnpm --filter @sniffo/analyzer test -- --reporter verbose src/query/__tests__/metrics.test.ts
 ```
 
 **Step 3: Implement metrics**
 
 ```typescript
 // packages/analyzer/src/query/metrics.ts
-import type { GraphStore } from '@contextualizer/storage';
-import { GraphLevel, EdgeType } from '@contextualizer/core';
+import type { GraphStore } from '@sniffo/storage';
+import { GraphLevel, EdgeType } from '@sniffo/core';
 
 export interface ComponentMetrics {
   id: string;
@@ -1115,7 +1115,7 @@ export { computeMetrics, type ComponentMetrics } from './query/metrics.js';
 **Step 5: Run tests**
 
 ```bash
-pnpm --filter @contextualizer/analyzer test -- --reporter verbose src/query/__tests__/metrics.test.ts
+pnpm --filter @sniffo/analyzer test -- --reporter verbose src/query/__tests__/metrics.test.ts
 ```
 
 **Step 6: Commit**
@@ -1141,8 +1141,8 @@ git commit -m "feat: add architectural metrics -- coupling and instability score
 // packages/mcp-server/src/tools/metrics.ts
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { GraphStore } from '@contextualizer/storage';
-import { computeMetrics } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { computeMetrics } from '@sniffo/analyzer';
 
 export function registerMetricsTool(server: McpServer, store: GraphStore): void {
   server.tool(
@@ -1213,8 +1213,8 @@ registerMetricsTool(server, store);
 ```typescript
 // packages/web-server/src/routes/metrics.ts
 import type { FastifyInstance } from 'fastify';
-import type { GraphStore } from '@contextualizer/storage';
-import { computeMetrics } from '@contextualizer/analyzer';
+import type { GraphStore } from '@sniffo/storage';
+import { computeMetrics } from '@sniffo/analyzer';
 
 export function registerMetricsRoutes(app: FastifyInstance, store: GraphStore): void {
   app.get('/api/metrics', async () => {
