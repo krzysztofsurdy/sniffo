@@ -1,6 +1,6 @@
 {
   "name": "@sniffo/core",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Type definitions and interfaces for the Sniffo knowledge graph",
   "license": "MIT",
   "repository": {
